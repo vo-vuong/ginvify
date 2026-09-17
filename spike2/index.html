@@ -273,8 +273,18 @@ code{background:var(--surface2);border:1px solid var(--line);border-radius:5px;p
         if (d > (inpMs || 0)) inpMs = d;
       }
       paint();
-    }).observe({type:'event', buffered:true, durationThreshold:40});
+    }).observe({type:'event', buffered:true, durationThreshold:16});
   } catch (e) { /* browser without event timing */ }
+
+  /* Seed from the first interaction. Without this, a fast click never crosses
+     the duration threshold and the panel stays stuck on its placeholder. */
+  try {
+    new PerformanceObserver(function(list){
+      var es = list.getEntries();
+      if (es.length && inpMs == null) inpMs = es[0].duration;
+      paint();
+    }).observe({type:'first-input', buffered:true});
+  } catch (e) { /* browser without first-input */ }
 
   /* ============================================================
      ROUTER — deterministic keyword scoring, no model, no network
@@ -566,7 +576,7 @@ code{background:var(--surface2);border:1px solid var(--line);border-radius:5px;p
       set('pmJsOut', external + ' file');
       set('pmJsIn', (inline / 1024).toFixed(1) + ' KB');
       set('pmLcp', lcpMs != null ? Math.round(lcpMs) + ' ms' : 'đang đo…');
-      set('pmInp', inpMs != null ? Math.round(inpMs) + ' ms' : 'bấm 1 lần');
+      set('pmInp', inpMs != null ? Math.round(inpMs) + ' ms' : 'chưa có');
       set('pmNodes', String(document.getElementsByTagName('*').length));
 
       var bytes = 0;
