@@ -690,9 +690,6 @@ stages.forEach(s=>sio.observe(s.el));
 const heroBox=document.querySelector('.hero-canvas-box');
 const heroIo=new IntersectionObserver(es=>{ gVisible=es[0].isIntersecting; },{rootMargin:'120px'});
 heroIo.observe(heroBox);
-const dataBox=document.getElementById('datacanvas').parentElement;
-let dVisible=false;
-new IntersectionObserver(es=>{ dVisible=es[0].isIntersecting; },{rootMargin:'120px'}).observe(dataBox);
 
 graph.addEventListener('pointermove',()=>{ if(Math.random()<.35) spawn(); });
 
@@ -725,10 +722,8 @@ function tick(now){
     drawGraph();
     document.getElementById('gp').textContent=packets.length;
   }
-  if(dVisible){
-    const ds=stages.find(s=>s.key==='data');
-    drawData(ds?ds.p:0);
-  }
+  const ds=stages.find(s=>s.key==='data');
+  if(ds && ds.vis) drawData(ds.p);
   requestAnimationFrame(tick);
 }
 
