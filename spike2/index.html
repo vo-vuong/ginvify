@@ -1,0 +1,647 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ginvify — trang tự viết lại cho từng ngành</title>
+<meta name="description" content="Spike ②+④: trang tự sắp xếp lại theo ngành của bạn, motion bằng CSS native, số đo hiển thị live.">
+<style>
+:root{
+  --bg:#06070d; --surface:#0d1019; --surface2:#121627; --text:#eef1f8; --muted:#8b93ab;
+  --violet:#7c5cff; --cyan:#22d3ee; --line:#1b2033; --ok:#34d399; --amber:#f59e0b;
+  --max:1140px; --r:14px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;background:var(--bg);color:var(--text);
+  font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;line-height:1.6;
+}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.wrap{max-width:var(--max);margin:0 auto;padding:0 24px}
+section{border-top:1px solid var(--line)}
+
+/* ---------- ④ progress bar: pure CSS scroll timeline, zero JS ---------- */
+#bar{position:fixed;top:0;left:0;right:0;height:2px;z-index:90;background:transparent}
+#bar i{display:block;height:100%;width:100%;transform:scaleX(0);transform-origin:0 50%;
+  background:linear-gradient(90deg,var(--violet),var(--cyan))}
+@supports (animation-timeline: scroll()){
+  #bar i{animation:grow linear both;animation-timeline:scroll(root block)}
+}
+@keyframes grow{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+
+/* ---------- reveal: pure CSS view() timeline, zero JS ---------- */
+@supports (animation-timeline: view()){
+  .rv{animation:rv-up linear both;animation-timeline:view();animation-range:entry 4% cover 30%}
+}
+@keyframes rv-up{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
+
+/* ---------- header ---------- */
+header{padding:18px 0}
+.hd{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:9px;font-weight:650;letter-spacing:-.01em}
+.sq{width:9px;height:9px;border-radius:3px;background:linear-gradient(135deg,var(--violet),var(--cyan))}
+.tag{font-size:11px;letter-spacing:.06em;padding:3px 9px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}
+.right{margin-left:auto;font-size:11.5px;color:var(--muted)}
+
+/* ---------- hero ---------- */
+.hero{padding:52px 0 60px}
+h1{font-size:clamp(28px,4.6vw,52px);line-height:1.08;letter-spacing:-.03em;margin:0 0 18px;font-weight:660}
+h1 em{font-style:normal;background:linear-gradient(96deg,var(--violet),var(--cyan));
+  -webkit-background-clip:text;background-clip:text;color:transparent}
+.sub{color:var(--muted);font-size:clamp(14.5px,1.6vw,18px);max-width:62ch;margin:0 0 28px}
+.sub b{color:var(--text);font-weight:600}
+
+.askbox{border:1px solid var(--line);background:var(--surface);border-radius:var(--r);padding:14px}
+.askrow{display:flex;gap:10px;flex-wrap:wrap}
+#q{flex:1 1 320px;min-width:0;background:var(--surface2);border:1px solid var(--line);border-radius:10px;
+  color:var(--text);padding:13px 15px;font-size:15px;font-family:inherit;outline:none}
+#q:focus{border-color:var(--violet)}
+#go{flex:0 0 auto;border:0;cursor:pointer;border-radius:10px;padding:13px 22px;font-size:14.5px;
+  font-weight:620;font-family:inherit;color:#080a12;background:linear-gradient(96deg,var(--cyan),#7ee7f5)}
+#go:hover{filter:brightness(1.08)}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.chip{border:1px solid var(--line);background:transparent;color:var(--muted);cursor:pointer;
+  border-radius:999px;padding:7px 14px;font-size:12.5px;font-family:inherit}
+.chip:hover{border-color:var(--violet);color:var(--text)}
+.priv{display:flex;gap:9px;align-items:flex-start;margin-top:14px;font-size:12.5px;color:var(--muted)}
+.priv b{color:var(--ok);font-weight:600}
+
+/* ---------- composed section ---------- */
+#compose{padding:56px 0 64px}
+.who{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-bottom:22px}
+.badge{border:1px solid rgba(124,92,255,.45);color:#c9bcff;border-radius:999px;padding:4px 12px;font-size:11.5px;
+  background:rgba(124,92,255,.1)}
+h2{font-size:clamp(22px,3vw,34px);letter-spacing:-.02em;margin:0 0 10px;font-weight:650}
+.lead{color:var(--muted);max-width:66ch;margin:0 0 34px}
+.block{margin-bottom:38px}
+.bl{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:14px}
+ul.pains{list-style:none;padding:0;margin:0;display:grid;gap:10px}
+ul.pains li{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:14px 16px}
+ul.pains li.hit{border-color:rgba(34,211,238,.45);background:rgba(34,211,238,.07)}
+ul.pains li .t{font-size:15px;margin-bottom:4px}
+ul.pains li .f{font-size:12.5px;color:var(--muted)}
+.tagyou{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--cyan);
+  border:1px solid rgba(34,211,238,.4);border-radius:999px;padding:2px 8px;margin-left:8px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.card{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:16px}
+.card .h{font-size:15px;font-weight:600;margin-bottom:7px}
+.card .d{font-size:12.5px;color:var(--muted)}
+.case{border:1px solid rgba(52,211,153,.32);background:rgba(52,211,153,.06);border-radius:12px;padding:18px}
+.case .m{font-size:clamp(20px,2.6vw,28px);font-weight:660;color:#c9ffe9;margin-bottom:4px}
+.case .t{font-size:14.5px;margin-bottom:6px}
+.case .d{font-size:12.5px;color:var(--muted)}
+.pkg{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:18px;
+  display:grid;grid-template-columns:1.1fr 1fr;gap:18px}
+.pkg .k{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.pkg .v{font-size:13.5px}
+.guard{border:1px solid var(--line);background:var(--surface2);border-radius:12px;padding:14px 16px;
+  font-size:13px;color:var(--muted)}
+.guard b{color:var(--text)}
+
+/* ---------- ④ perf panel ---------- */
+#perf{padding:56px 0 64px}
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
+.m{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:14px}
+.m .k{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:7px}
+.m .v{font-size:clamp(17px,2.2vw,24px);font-weight:640;font-variant-numeric:tabular-nums}
+.m .n{font-size:11px;color:var(--muted);margin-top:4px}
+.m.good .v{color:var(--ok)}
+.bench{border:1px solid var(--line);background:var(--surface2);border-radius:12px;padding:16px;font-size:13px;color:var(--muted)}
+.bench b{color:var(--text)}
+.factlist{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:14px}
+.fact{border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:12.5px;color:var(--muted)}
+.fact b{color:var(--text);display:block;margin-bottom:3px;font-size:13px}
+
+/* ---------- footer ---------- */
+footer{border-top:1px solid var(--line);padding:44px 0 60px;color:var(--muted);font-size:13px}
+.note{border:1px solid rgba(245,158,11,.3);background:rgba(245,158,11,.06);color:#f7d9a8;
+  border-radius:10px;padding:11px 14px;margin-top:20px;font-size:12.5px}
+code{background:var(--surface2);border:1px solid var(--line);border-radius:5px;padding:1px 6px;font-size:12px}
+
+/* ---------- recompose swap: plain CSS animation, state commits synchronously ---------- */
+#compose.swap{animation:swap-in .32s ease}
+@keyframes swap-in{from{opacity:.35;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+/* ---------- responsive ---------- */
+@media (max-width:900px){
+  .grid3{grid-template-columns:1fr}
+  .metrics{grid-template-columns:repeat(2,1fr)}
+  .pkg{grid-template-columns:1fr}
+  .factlist{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion:reduce){
+  *{animation:none!important;transition:none!important}
+  html{scroll-behavior:auto}
+}
+</style>
+</head>
+<body>
+<div id="bar"><i></i></div>
+
+<header>
+  <div class="wrap hd">
+    <span class="brand"><span class="sq"></span>Ginvify</span>
+    <span class="tag mono">spike ② + ④</span>
+    <span class="right mono" id="hdr">chưa chọn ngành</span>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="wrap">
+    <h1>Bạn làm ngành gì —<br><em>trang này tự viết lại cho bạn.</em></h1>
+    <p class="sub">Không có menu. Không có 5 trang dịch vụ chung chung. Gõ ngành và nỗi đau của bạn,
+      <b>trang tự sắp xếp lại</b>: nội dung, ví dụ, gói khởi đầu — đổi theo ngành bạn.</p>
+
+    <form class="askbox" id="ask">
+      <div class="askrow">
+        <input id="q" type="text" autocomplete="off" spellcheck="false"
+          placeholder="VD: mình bán mỹ phẩm online, khách hỏi lặp hoài…">
+        <button id="go" type="submit">Viết lại trang</button>
+      </div>
+      <div class="chips" id="chips"></div>
+      <div class="priv">
+        <span>🔒</span>
+        <span><b>Không gửi đi đâu cả.</b> Không có model nào chạy ở đây — việc chọn ngành diễn ra
+          ngay trên máy bạn, bằng một bảng từ khoá. Đây đúng là cách Ginvify làm với dữ liệu khách hàng:
+          cái gì xử lý được tại chỗ thì xử lý tại chỗ.</span>
+      </div>
+    </form>
+  </div>
+</section>
+
+<section id="compose">
+  <div class="wrap">
+    <div class="who">
+      <span class="badge" id="whoP">Chế độ mặc định</span>
+      <span id="whoQ">Chưa có mô tả — đang hiển thị bản chung.</span>
+    </div>
+
+    <h2 id="tagline">Hệ thống AI chạy thật cho doanh nghiệp Việt</h2>
+    <p class="lead" id="lead"></p>
+
+    <div class="block rv">
+      <div class="bl">Nỗi đau</div>
+      <ul class="pains" id="pains"></ul>
+    </div>
+
+    <div class="block rv">
+      <div class="bl">Ginvify xử lý thế nào</div>
+      <div class="grid3" id="caps"></div>
+    </div>
+
+    <div class="block rv">
+      <div class="bl">Kết quả đã làm</div>
+      <div class="case" id="case"></div>
+    </div>
+
+    <div class="block rv">
+      <div class="bl">Gói khởi đầu</div>
+      <div class="pkg" id="pkg"></div>
+    </div>
+
+    <div class="guard" id="guard"></div>
+  </div>
+</section>
+
+<section id="perf">
+  <div class="wrap">
+    <h2 class="rv">④ Trang này nhẹ đến mức nào</h2>
+    <p class="lead rv">Số dưới đây <b>đo trên chính máy bạn</b>, không phải số mình gõ tay.
+      Toàn bộ hiệu ứng cuộn của trang chạy bằng CSS native — <code>animation-timeline</code> —
+      nên không có một dòng JavaScript nào chạy mỗi frame cuộn.</p>
+
+    <div class="metrics">
+      <div class="m good"><div class="k">JS ngoài</div><div class="v" id="pmJsOut">—</div><div class="n">thư viện phải tải</div></div>
+      <div class="m"><div class="k">JS inline</div><div class="v" id="pmJsIn">—</div><div class="n">router + đo lường</div></div>
+      <div class="m good"><div class="k">LCP</div><div class="v" id="pmLcp">…</div><div class="n">phần tử lớn nhất</div></div>
+      <div class="m good"><div class="k">INP</div><div class="v" id="pmInp">…</div><div class="n">độ trễ tương tác</div></div>
+      <div class="m"><div class="k">DOM node</div><div class="v" id="pmNodes">—</div><div class="n">số phần tử</div></div>
+      <div class="m"><div class="k">Tải trang</div><div class="v" id="pmBytes">—</div><div class="n">qua mạng</div></div>
+      <div class="m good"><div class="k">CSS timeline</div><div class="v" id="pmTl">—</div><div class="n">phần tử cuộn bằng CSS</div></div>
+      <div class="m"><div class="k">JS mỗi frame cuộn</div><div class="v">0</div><div class="n">không có scroll handler</div></div>
+    </div>
+
+    <div class="bench rv">
+      <b>Mốc so sánh có nguồn:</b> một studio công bố khi bỏ GSAP/ScrollMagic sang CSS native —
+      JS critical <b>47KB → 16KB</b>, p75 INP <b>224ms → 104ms</b>.
+      <span class="mono" style="font-size:11.5px"><https://mintec.co/blog/scroll-driven-view-transitions-css-2026/></span>
+      <div style="margin-top:8px;font-size:12px">Số đó là của studio kia, không phải của mình. Mình chỉ dẫn ra để Toro có mốc.</div>
+    </div>
+
+    <div class="factlist">
+      <div class="fact"><b>Đo được, không phải khai</b>LCP/INP/DOM/byte đọc từ Performance API ngay trên máy bạn.</div>
+      <div class="fact"><b>Không fallback vỡ</b>Máy không hỗ trợ <code>animation-timeline</code> thì bỏ animation, nội dung vẫn hiện đủ.</div>
+      <div class="fact"><b>Router là bảng từ khoá</b>Chạy tức thì, 0 token, 0 latency. Nâng cấp thành LLM sau nếu cần.</div>
+      <div class="fact"><b>Đổi ngành bằng CSS animation</b>State đổi đồng bộ trước, animation chạy sau — nên bấm nhanh cỡ nào cũng không hiện sai ngành.</div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div>Ginvify — spike ② + ④. Dựng thuần HTML/CSS/JS, không thư viện ngoài.</div>
+    <div class="note">⚠️ <b>Nội dung mô phỏng.</b> Nỗi đau, case study, số liệu và gói khởi đầu đều do mình
+      soạn làm ví dụ — chưa phải dữ liệu thật của khách hàng nào. Phải thay bằng số thật trước khi công bố.</div>
+  </div>
+</footer>
+
+<script>
+(function(){
+  'use strict';
+
+  /* ============================================================
+     PERF OBSERVERS — register early, buffered so we do not miss entries
+     ============================================================ */
+  var lcpMs = null, inpMs = null;
+
+  try {
+    new PerformanceObserver(function(list){
+      var es = list.getEntries();
+      var last = es[es.length - 1];
+      if (last) lcpMs = last.startTime;
+      paint();
+    }).observe({type:'largest-contentful-paint', buffered:true});
+  } catch (e) { /* browser without LCP observer */ }
+
+  try {
+    new PerformanceObserver(function(list){
+      var es = list.getEntries();
+      for (var i = 0; i < es.length; i++){
+        var d = es[i].duration;
+        if (d > (inpMs || 0)) inpMs = d;
+      }
+      paint();
+    }).observe({type:'event', buffered:true, durationThreshold:40});
+  } catch (e) { /* browser without event timing */ }
+
+  /* ============================================================
+     ROUTER — deterministic keyword scoring, no model, no network
+     ============================================================ */
+  var PAINS = {
+    reply:    { kw:['lặp','trả lời','chat','hỏi','chăm sóc','tư vấn','inbox','tin nhắn'],
+                fix:'Một trợ lý trả lời dựa trên tài liệu thật của bạn, tự trích nguồn, tự chuyển người khi không chắc.' },
+    entry:    { kw:['nhập','nhập liệu','excel','gõ','chép','dữ liệu tay','bảng tính'],
+                fix:'Đọc file/hình ảnh rồi đẩy thẳng vào hệ thống, kèm bước kiểm tra để không ghi sai.' },
+    report:   { kw:['báo cáo','tổng hợp','số liệu','thống kê','dashboard','cập nhật số'],
+                fix:'Tổng hợp tự động theo lịch, mỗi sáng có sẵn bản tóm tắt và chỗ nào lệch thì nêu ra.' },
+    docs:     { kw:['tài liệu','hồ sơ','tra cứu','tìm','hợp đồng','quy trình','biểu mẫu'],
+                fix:'Tìm theo ngữ nghĩa trên toàn bộ hồ sơ cũ, trả về đúng đoạn cần đọc thay vì cả file.' },
+    forecast: { kw:['dự báo','nhu cầu','tồn kho','kế hoạch','mùa','sắp hết','đặt hàng'],
+                fix:'Dự báo theo mùa và theo cửa hàng, cảnh báo sớm mã nào sắp hết để kịp đặt.' }
+  };
+
+  var PROFILES = {
+    retail: {
+      label:'Bán lẻ & chuỗi cửa hàng',
+      kw:['bán lẻ','cửa hàng','shop','chuỗi','mỹ phẩm','thời trang','siêu thị','tạp hoá','store','retail'],
+      tagline:'Bán lẻ: bán đúng mã, đúng lúc, đúng cửa hàng',
+      lead:'Chuỗi càng nhiều điểm bán thì càng khó biết điểm nào đang thiếu gì. Ginvify gom dữ liệu bán hàng và tồn kho lại, rồi để bạn hỏi bằng tiếng Việt bình thường.',
+      pains:[{k:'reply'},{k:'forecast'},{k:'report'}],
+      caps:[
+        {h:'Tra cứu tồn kho bằng câu hỏi',d:'"Còn bao nhiêu sữa rửa mặt ở Q.7?" — trả lời kèm số thật và thời điểm cập nhật.'},
+        {h:'Dự báo theo mùa Việt Nam',d:'Tết, Black Friday, mùa mưa — học từ chính lịch sử bán của bạn.'},
+        {h:'Báo cáo sáng tự động',d:'Mỗi ngày một bản tóm tắt: mã nào bán chạy, điểm nào lệch, cần nhập gì.'}
+      ],
+      case:{m:'-60% thời gian', t:'Chuỗi 12 cửa hàng mỹ phẩm', d:'Tổng hợp báo cáo cuối ngày từ 3 giờ xuống còn khoảng 1 giờ. Nhân viên không phải xuất Excel thủ công nữa.'},
+      pkg:{name:'Khởi đầu 4 tuần', scope:'1 trợ lý tra cứu tồn kho + 1 báo cáo sáng tự động, chạy trên dữ liệu hiện có', kpi:'Mục tiêu: cắt thời gian tổng hợp báo cáo ít nhất 50%'},
+      guard:'<b>Dữ liệu bán hàng không rời hệ thống của bạn.</b> Phần tra cứu và dự báo chạy trong hạ tầng bạn kiểm soát; chỉ phần suy luận cần model mới gọi ra ngoài, và có thể tắt.'
+    },
+    ecom: {
+      label:'Thương mại điện tử',
+      kw:['thương mại điện tử','ecommerce','e-com','online','shopee','lazada','tiktok shop','sàn','mỹ phẩm online','bán online'],
+      tagline:'E-commerce: trả lời nhanh, đăng hàng nhanh',
+      lead:'Khách hỏi cùng một câu mỗi ngày, và mỗi mã hàng lại phải viết mô tả mới. Đây là hai chỗ tốn người nhất và cũng dễ tự động hoá nhất.',
+      pains:[{k:'reply'},{k:'entry'},{k:'report'}],
+      caps:[
+        {h:'Trả lời chat có kiểm soát',d:'Bám theo bảng giá, tồn kho và chính sách đổi trả thật của bạn — không bịa.'},
+        {h:'Sinh mô tả hàng loạt',d:'Từ ảnh và thông số thô ra mô tả tiếng Việt, giữ đúng giọng thương hiệu.'},
+        {h:'Gom phản hồi tiêu cực',d:'Tự phân loại đánh giá xấu theo nguyên nhân để xử lý trước việc gấp.'}
+      ],
+      case:{m:'-70% thời gian', t:'Shop mỹ phẩm, ~2.000 đơn/tháng', d:'Trả lời câu hỏi lặp (phí ship, còn hàng, đổi trả) tự động; khách chỉ gặp người khi thực sự cần.'},
+      pkg:{name:'Khởi đầu 3 tuần', scope:'Trợ lý trả lời chat + sinh mô tả sản phẩm theo lô', kpi:'Mục tiêu: xử lý được 70% câu hỏi lặp không cần người'},
+      guard:'<b>Lịch sử chat của khách là dữ liệu nhạy cảm.</b> Trang này không gửi gì đi; sản phẩm thật cũng thiết kế để phần lớn xử lý tại chỗ, chỉ đẩy ra ngoài khi bạn cho phép.'
+    },
+    manufacturing: {
+      label:'Sản xuất',
+      kw:['sản xuất','xưởng','nhà máy','factory','dây chuyền','ca sản xuất','công nghiệp','chế tạo'],
+      tagline:'Sản xuất: số liệu ca, tài liệu máy, và lý do dừng máy',
+      lead:'Ba chỗ đau nhất ở xưởng: báo cáo ca nhập tay, tài liệu kỹ thuật nằm rải rác, và dừng máy bất ngờ. Cả ba đều là bài toán dữ liệu.',
+      pains:[{k:'entry'},{k:'docs'},{k:'report'}],
+      caps:[
+        {h:'Số hoá báo cáo ca',d:'Đọc phiếu giấy hoặc ảnh chụp, đẩy vào đúng biểu mẫu, kèm bước đối chiếu.'},
+        {h:'Tra cứu tài liệu kỹ thuật',d:'Hỏi bằng tiếng Việt, trả về đúng đoạn trong manual của đúng model máy.'},
+        {h:'Cảnh báo dấu hiệu bất thường',d:'So sánh thông số vận hành với lịch sử để phát hiện sớm trước khi dừng máy.'}
+      ],
+      case:{m:'-45% lỗi nhập', t:'Xưởng cơ khí, 2 ca/ngày', d:'Phiếu báo ca chụp ảnh được đọc tự động, phần lệch số được đánh dấu để tổ trưởng xác nhận.'},
+      pkg:{name:'Khởi đầu 5 tuần', scope:'Số hoá báo cáo ca + trợ lý tra cứu tài liệu máy', kpi:'Mục tiêu: giảm ít nhất 40% lỗi nhập và thời gian tra tài liệu'},
+      guard:'<b>Tài liệu kỹ thuật là tài sản.</b> Hệ thống có thể chạy hoàn toàn trong mạng nội bộ của nhà máy nếu bạn yêu cầu — không cần đẩy ra ngoài.'
+    },
+    logistics: {
+      label:'Logistics & vận tải',
+      kw:['logistics','vận tải','giao hàng','xe tải','kho vận','điều phối','ship','forwarder','container'],
+      tagline:'Vận tải: hàng đang ở đâu, và chuyến nào nên ghép',
+      lead:'Khách hỏi "hàng tôi đâu" liên tục, còn điều phối vẫn nằm trong file Excel của một người. Gom hai việc đó lại là đã tiết kiệm rất nhiều cuộc gọi.',
+      pains:[{k:'docs'},{k:'report'},{k:'entry'}],
+      caps:[
+        {h:'Trạng thái lô hàng tự động',d:'Gom trạng thái từ nhiều nguồn, trả lời khách bằng ngôn ngữ bình thường.'},
+        {h:'Đề xuất ghép chuyến',d:'Gợi ý ghép đơn theo tuyến, tải trọng và khung giờ giao đã cam kết.'},
+        {h:'Kiểm soát chi phí',d:'Bóc tách chi phí theo chuyến, chỉ ra tuyến nào đang lỗ mà ít người thấy.'}
+      ],
+      case:{m:'-8 giờ/tuần', t:'Công ty vận tải 40 xe', d:'Điều phối không phải tự tổng hợp trạng thái mỗi sáng; bản tóm tắt có sẵn kèm cảnh báo chuyến trễ.'},
+      pkg:{name:'Khởi đầu 4 tuần', scope:'Trạng thái lô hàng tự động + báo cáo chi phí theo tuyến', kpi:'Mục tiêu: giảm ít nhất 50% cuộc gọi hỏi trạng thái'},
+      guard:'<b>Vị trí và lịch giao là dữ liệu vận hành.</b> Có thể chỉ chạy nội bộ; phần trả lời khách chỉ nhận đúng thông tin của lô đó, không lộ dữ liệu chuyến khác.'
+    },
+    service: {
+      label:'Dịch vụ chuyên môn (kế toán · luật · tư vấn)',
+      kw:['kế toán','luật','tư vấn','dịch vụ chuyên môn','kiểm toán','hồ sơ','văn phòng luật','công ty luật','consulting'],
+      tagline:'Dịch vụ chuyên môn: tìm lại đúng thứ đã từng làm',
+      lead:'Giá trị nằm ở kinh nghiệm, nhưng kinh nghiệm nằm rải rác trong hồ sơ cũ. Tìm lại được là tiết kiệm trực tiếp giờ billable.',
+      pains:[{k:'docs'},{k:'entry'},{k:'reply'}],
+      caps:[
+        {h:'Tìm theo ngữ nghĩa',d:'"Hợp đồng nào có điều khoản phạt tương tự?" — tìm được dù từ ngữ khác nhau.'},
+        {h:'Soạn tài liệu theo mẫu cũ',d:'Dựng bản nháp từ hồ sơ tương tự, giữ đúng văn phong của công ty.'},
+        {h:'Rà soát điều khoản',d:'Đánh dấu điều khoản rủi ro và nêu lý do, để người có chuyên môn quyết.'}
+      ],
+      case:{m:'-3 giờ/hồ sơ', t:'Công ty luật 15 người', d:'Tìm hồ sơ tương tự và dựng bản nháp ban đầu mất vài phút thay vì nửa buổi.'},
+      pkg:{name:'Khởi đầu 4 tuần', scope:'Tìm kiếm ngữ nghĩa trên toàn bộ hồ sơ + soạn nháp theo mẫu', kpi:'Mục tiêu: cắt thời gian tìm hồ sơ cũ xuống dưới 5 phút'},
+      guard:'<b>Hồ sơ khách hàng là bí mật nghề nghiệp.</b> Hệ thống chạy nội bộ, phân quyền theo từng vụ việc, và ghi lại ai đã tra cứu gì.'
+    }
+  };
+
+  var DEFAULT_PROFILE = 'retail';
+
+  function normalize(s){
+    return (s || '').toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')  /* strip Vietnamese accents */
+      .replace(/đ/g, 'd')
+      .replace(/[^a-z0-9\s]/g, ' ')                       /* punctuation -> space */
+      .replace(/\s+/g, ' ').trim();
+  }
+
+  /* Whole-token matching. Substring matching produced a real false
+     positive: keyword 'hoi' (hỏi) matched inside 'phoi' (phối). */
+  function score(text, keys){
+    var n = normalize(text);
+    var toks = n.length ? n.split(' ') : [];
+    var set = {};
+    for (var i = 0; i < toks.length; i++) set[toks[i]] = 1;
+    var padded = ' ' + n + ' ';
+    var hit = 0;
+    for (var k = 0; k < keys.length; k++){
+      var kk = normalize(keys[k]);
+      if (!kk) continue;
+      if (kk.indexOf(' ') !== -1){
+        if (padded.indexOf(' ' + kk + ' ') !== -1) hit++;   /* phrase */
+      } else if (set[kk]){
+        hit++;                                              /* single token */
+      }
+    }
+    return hit;
+  }
+
+  function route(query){
+    var best = null, bestScore = 0, k;
+    for (k in PROFILES){
+      if (!Object.prototype.hasOwnProperty.call(PROFILES, k)) continue;
+      var s = score(query, PROFILES[k].kw);
+      if (s > bestScore){ bestScore = s; best = k; }
+    }
+    var pain = null, painScore = 0;
+    for (k in PAINS){
+      if (!Object.prototype.hasOwnProperty.call(PAINS, k)) continue;
+      var ps = score(query, PAINS[k].kw);
+      if (ps > painScore){ painScore = ps; pain = k; }
+    }
+    return {
+      profile: best || DEFAULT_PROFILE,
+      matched: !!best,
+      pain: painScore > 0 ? pain : null,
+      query: (query || '').trim()
+    };
+  }
+
+  /* ============================================================
+     RENDER
+     ============================================================ */
+  var el = {
+    whoP: document.getElementById('whoP'),
+    whoQ: document.getElementById('whoQ'),
+    tagline: document.getElementById('tagline'),
+    lead: document.getElementById('lead'),
+    pains: document.getElementById('pains'),
+    caps: document.getElementById('caps'),
+    case: document.getElementById('case'),
+    pkg: document.getElementById('pkg'),
+    guard: document.getElementById('guard'),
+    hdr: document.getElementById('hdr'),
+    q: document.getElementById('q'),
+    chips: document.getElementById('chips')
+  };
+
+  function esc(s){
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function render(res){
+    var p = PROFILES[res.profile];
+
+    el.whoP.textContent = res.matched ? p.label : 'Chế độ mặc định';
+    el.whoQ.textContent = res.query
+      ? '"' + res.query + '"'
+      : 'Chưa có mô tả — đang hiển thị bản chung.';
+
+    el.tagline.textContent = p.tagline;
+    el.lead.textContent = p.lead;
+
+    /* pains — matched one floats to the top; if the matched pain is not in
+       this industry's list, insert it so the highlight is never empty */
+    var list = p.pains.slice();
+    if (res.pain){
+      var found = false;
+      for (var q = 0; q < list.length; q++){ if (list[q].k === res.pain) found = true; }
+      if (!found) list.unshift({k: res.pain});
+      list.sort(function(a, b){
+        if (a.k === res.pain && b.k !== res.pain) return -1;
+        if (b.k === res.pain && a.k !== res.pain) return 1;
+        return 0;
+      });
+    }
+    var html = '';
+    for (var i = 0; i < list.length; i++){
+      var pk = list[i].k, pd = PAINS[pk];
+      var isHit = res.pain && pk === res.pain;
+      var text = pd.fix;
+      html += '<li' + (isHit ? ' class="hit"' : '') + '>' +
+                '<div class="t">' + esc(painLabel(pk)) +
+                  (isHit ? '<span class="tagyou">bạn vừa nói</span>' : '') + '</div>' +
+                '<div class="f">' + esc(text) + '</div>' +
+              '</li>';
+    }
+    el.pains.innerHTML = html;
+
+    var caps = '';
+    for (var c = 0; c < p.caps.length; c++){
+      caps += '<div class="card"><div class="h">' + esc(p.caps[c].h) + '</div>' +
+              '<div class="d">' + esc(p.caps[c].d) + '</div></div>';
+    }
+    el.caps.innerHTML = caps;
+
+    el.case.innerHTML = '<div class="m">' + esc(p.case.m) + '</div>' +
+                        '<div class="t">' + esc(p.case.t) + '</div>' +
+                        '<div class="d">' + esc(p.case.d) + '</div>';
+
+    el.pkg.innerHTML = '<div><div class="k">' + esc(p.pkg.name) + '</div>' +
+                       '<div class="v">' + esc(p.pkg.scope) + '</div></div>' +
+                       '<div><div class="k">Đo lường</div>' +
+                       '<div class="v">' + esc(p.pkg.kpi) + '</div></div>';
+
+    el.guard.innerHTML = p.guard;
+
+    el.hdr.textContent = p.label;
+
+    /* verification hooks */
+    var de = document.documentElement;
+    de.dataset.profile = res.profile;
+    de.dataset.matched = res.matched ? '1' : '0';
+    de.dataset.pain = res.pain || 'none';
+    de.dataset.recomposes = String((parseInt(de.dataset.recomposes || '0', 10) || 0) + 1);
+    de.dataset.painCount = String(el.pains.children.length);
+    de.dataset.hitCount = String(el.pains.querySelectorAll('li.hit').length);
+  }
+
+  function painLabel(k){
+    return {
+      reply:'Khách hỏi lặp lại mỗi ngày',
+      entry:'Nhập liệu thủ công, dễ sai',
+      report:'Báo cáo tổng hợp chậm, số lệch nhau',
+      docs:'Tài liệu cũ không tìm lại được',
+      forecast:'Không đoán được nhu cầu, lúc thiếu lúc thừa'
+    }[k] || k;
+  }
+
+  /* ============================================================
+     RECOMPOSE — commit the DOM synchronously, then play a CSS
+     animation on top. The state must never depend on an async
+     callback: an animated wrapper can be skipped and leave the
+     page showing the PREVIOUS industry (verified bug).
+     ============================================================ */
+  function reducedMotion(){
+    return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  }
+
+  var composeEl = document.getElementById('compose');
+
+  function commit(res){
+    render(res);
+    paint();
+  }
+
+  function recompose(query){
+    var res = route(query);
+    commit(res);
+    if (composeEl && !reducedMotion()){
+      composeEl.classList.remove('swap');
+      void composeEl.offsetWidth;      /* restart the animation */
+      composeEl.classList.add('swap');
+    }
+    return res;
+  }
+
+  /* ============================================================
+     MEASURED PANEL — numbers come from the browser, not from us
+     ============================================================ */
+  var paintQueued = false;
+  function paint(){
+    if (paintQueued) return;
+    paintQueued = true;
+    requestAnimationFrame(function(){
+      paintQueued = false;
+      var scripts = document.getElementsByTagName('script');
+      var inline = 0, external = 0;
+      for (var i = 0; i < scripts.length; i++){
+        if (scripts[i].src) external++; else inline += (scripts[i].textContent || '').length;
+      }
+      set('pmJsOut', external + ' file');
+      set('pmJsIn', (inline / 1024).toFixed(1) + ' KB');
+      set('pmLcp', lcpMs != null ? Math.round(lcpMs) + ' ms' : 'đang đo…');
+      set('pmInp', inpMs != null ? Math.round(inpMs) + ' ms' : 'bấm 1 lần');
+      set('pmNodes', String(document.getElementsByTagName('*').length));
+
+      var bytes = 0;
+      try {
+        var nav = performance.getEntriesByType('navigation')[0];
+        if (nav && nav.transferSize) bytes += nav.transferSize;
+        var res2 = performance.getEntriesByType('resource');
+        for (var r = 0; r < res2.length; r++) bytes += (res2[r].transferSize || 0);
+      } catch (e) {}
+      set('pmBytes', bytes ? (bytes / 1024).toFixed(0) + ' KB' : '—');
+
+      /* count elements actually driven by a CSS timeline (measured) */
+      var tl = 0, all = document.getElementsByTagName('*');
+      for (var n = 0; n < all.length; n++){
+        var cs = getComputedStyle(all[n]);
+        if (cs.animationTimeline && cs.animationTimeline !== 'auto') tl++;
+      }
+      set('pmTl', String(tl));
+    });
+  }
+
+  function set(id, v){
+    var e2 = document.getElementById(id);
+    if (e2) e2.textContent = v;
+  }
+
+  /* ============================================================
+     WIRING
+     ============================================================ */
+  var EXAMPLES = [
+    'Mình bán mỹ phẩm online, khách hỏi lặp hoài',
+    'Xưởng sản xuất, báo cáo ca toàn nhập tay',
+    'Công ty vận tải, điều phối bằng Excel',
+    'Văn phòng luật, tìm hồ sơ cũ mất thời gian',
+    'Chuỗi cửa hàng, tồn kho lệch giữa các điểm',
+    'Không biết bắt đầu từ đâu'
+  ];
+
+  var chipsHtml = '';
+  for (var e = 0; e < EXAMPLES.length; e++){
+    chipsHtml += '<button type="button" class="chip" data-q="' + esc(EXAMPLES[e]) + '">' + esc(EXAMPLES[e]) + '</button>';
+  }
+  el.chips.innerHTML = chipsHtml;
+
+  el.chips.addEventListener('click', function(ev){
+    var t = ev.target;
+    if (!t || !t.getAttribute) return;
+    var q = t.getAttribute('data-q');
+    if (!q) return;
+    el.q.value = q;
+    recompose(q);
+  });
+
+  document.getElementById('ask').addEventListener('submit', function(ev){
+    ev.preventDefault();
+    if (typeT) clearTimeout(typeT);
+    recompose(el.q.value);
+  });
+
+  var typeT = 0;
+  el.q.addEventListener('input', function(){
+    if (typeT) clearTimeout(typeT);
+    typeT = setTimeout(function(){
+      if (el.q.value.trim().length >= 3) recompose(el.q.value);
+    }, 220);
+  });
+
+  /* first paint: default profile */
+  commit(route(''));
+  paint();
+
+  try { new PerformanceObserver(paint).observe({type:'paint', buffered:true}); } catch (e) {}
+  window.addEventListener('load', paint);
+  setTimeout(paint, 600);
+})();
+</script>
+</body>
+</html>
