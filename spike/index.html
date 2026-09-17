@@ -1,0 +1,558 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ginvify — Một trang web, một agent run</title>
+<meta name="description" content="Spike kỹ thuật: toàn bộ trang web là một agent trace đang chạy.">
+<style>
+:root{
+  --bg:#06070d; --bg2:#080a12; --surface:#0d1019; --surface2:#121627;
+  --text:#eef1f8; --muted:#8b93ab; --violet:#7c5cff; --cyan:#22d3ee;
+  --line:#1b2033; --ok:#34d399; --max:1240px; --r:14px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;background:var(--bg);color:var(--text);overflow-x:hidden;
+  font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;line-height:1.55;
+}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+a{color:inherit;text-decoration:none}
+.wrap{max-width:var(--max);margin:0 auto;padding:0 24px}
+
+/* top progress */
+#bar{position:fixed;top:0;left:0;height:2px;width:0;z-index:90;
+  background:linear-gradient(90deg,var(--violet),var(--cyan));transition:width .08s linear}
+
+/* ---------- HERO ---------- */
+.hero{position:relative;min-height:100vh;display:flex;align-items:center;
+  border-bottom:1px solid var(--line);overflow:hidden}
+.hero .wrap{position:relative;z-index:2}
+.kicker{display:inline-flex;align-items:center;gap:8px;font-size:12px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--muted);border:1px solid var(--line);
+  border-radius:999px;padding:6px 14px;margin-bottom:26px}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--cyan);box-shadow:0 0 10px var(--cyan)}
+h1{font-size:clamp(32px,5.4vw,64px);line-height:1.06;letter-spacing:-.03em;margin:0 0 20px;font-weight:650}
+h1 em{font-style:normal;background:linear-gradient(96deg,var(--violet),var(--cyan));
+  -webkit-background-clip:text;background-clip:text;color:transparent}
+.lede{font-size:clamp(15px,1.7vw,19px);color:var(--muted);max-width:64ch;margin:0 0 34px}
+.lede b{color:var(--text);font-weight:600}
+.hint{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted)}
+.arrow{display:inline-block;animation:bob 1.6s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(6px)}}
+
+/* ---------- RUN STAGE ---------- */
+#run{position:relative;height:900vh}
+.stage{position:sticky;top:0;height:100vh;display:flex;flex-direction:column;
+  padding:18px 0 14px;overflow:hidden;background:
+    radial-gradient(1100px 500px at 18% -10%,rgba(124,92,255,.13),transparent 60%),
+    radial-gradient(900px 460px at 88% 108%,rgba(34,211,238,.10),transparent 60%),var(--bg)}
+#bg{position:absolute;inset:0;width:100%;height:100%;z-index:0;display:block}
+.stage-inner{position:relative;z-index:1;display:flex;flex-direction:column;flex:1;min-height:0}
+
+/* run header */
+.runhead{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;
+  border:1px solid var(--line);background:rgba(13,16,25,.72);border-radius:var(--r);
+  padding:10px 14px;backdrop-filter:blur(8px)}
+.brand{display:flex;align-items:center;gap:8px;font-weight:650;letter-spacing:-.01em}
+.sq{width:9px;height:9px;border-radius:3px;background:linear-gradient(135deg,var(--violet),var(--cyan))}
+.pill{font-size:11px;letter-spacing:.06em;padding:3px 9px;border-radius:999px;
+  border:1px solid var(--line);color:var(--muted)}
+.pill.run{border-color:rgba(34,211,238,.45);color:var(--cyan)}
+.pill.done{border-color:rgba(52,211,153,.45);color:var(--ok)}
+.hud{margin-left:auto;display:flex;flex-wrap:wrap;gap:8px 16px;font-size:12px;color:var(--muted)}
+.hud b{color:var(--text);font-weight:600;font-variant-numeric:tabular-nums}
+
+/* main grid */
+.grid{display:grid;grid-template-columns:1.32fr .88fr;gap:14px;margin-top:12px;flex:1;min-height:0}
+.panel{border:1px solid var(--line);background:rgba(13,16,25,.74);border-radius:var(--r);
+  backdrop-filter:blur(8px);display:flex;flex-direction:column;min-height:0;overflow:hidden}
+.phead{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line);
+  font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:var(--muted);flex:0 0 auto}
+.phead .sp{margin-left:auto;letter-spacing:0;text-transform:none;font-size:11px}
+
+/* tree */
+.treewrap{position:relative;flex:1;min-height:0;overflow:hidden;padding:8px 10px 10px}
+.spine{position:absolute;left:26px;top:14px;bottom:14px;width:2px;background:var(--line);
+  border-radius:2px;overflow:hidden}
+.spine i{display:block;width:100%;height:0;background:linear-gradient(180deg,var(--violet),var(--cyan));
+  transition:height .18s ease-out;box-shadow:0 0 12px rgba(34,211,238,.5)}
+.row{position:relative;display:flex;align-items:center;gap:10px;height:6.6vh;min-height:26px;
+  padding:0 8px 0 0;border-radius:8px;font-size:clamp(10.5px,1.02vw,12.5px);opacity:.34;
+  transition:opacity .22s ease,background .22s ease;white-space:nowrap}
+.row.done{opacity:.74}
+.row.on{opacity:1;background:rgba(124,92,255,.10)}
+.row .mark{width:34px;flex:0 0 34px;display:flex;justify-content:center;position:relative;z-index:2}
+.row .mark b{width:9px;height:9px;border-radius:50%;background:var(--line);display:block;transition:.2s}
+.row.done .mark b{background:var(--ok);box-shadow:0 0 8px rgba(52,211,153,.55)}
+.row.on .mark b{background:var(--cyan);box-shadow:0 0 14px var(--cyan);animation:pulse 1.1s ease-in-out infinite}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.55)}}
+.kd{flex:0 0 auto;font-size:9.5px;letter-spacing:.07em;padding:2px 7px;border-radius:5px;
+  border:1px solid var(--c);color:var(--c);background:color-mix(in srgb,var(--c) 11%,transparent)}
+.nm{flex:0 1 auto;overflow:hidden;text-overflow:ellipsis;color:var(--text)}
+.wf{flex:1 1 auto;min-width:40px;height:8px;position:relative;background:rgba(255,255,255,.045);
+  border-radius:4px;overflow:hidden}
+.wf i{position:absolute;top:0;bottom:0;border-radius:4px;background:var(--c);opacity:.55;
+  transform:scaleX(0);transform-origin:left center;transition:transform .2s ease-out}
+.row.done .wf i,.row.on .wf i{opacity:.9}
+.ms{flex:0 0 auto;color:var(--muted);font-variant-numeric:tabular-nums;font-size:11px}
+.tk{flex:0 0 auto;color:var(--muted);font-variant-numeric:tabular-nums;font-size:11px;
+  min-width:46px;text-align:right}
+
+/* detail */
+.detail{flex:1;min-height:0;overflow:hidden;padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+.dtop{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.dnm{font-size:13px;font-weight:600}
+.dmeta{display:flex;gap:6px 14px;flex-wrap:wrap;font-size:11px;color:var(--muted);
+  font-variant-numeric:tabular-nums}
+.blk{border:1px solid var(--line);border-radius:10px;background:rgba(8,10,18,.72);
+  padding:9px 11px;font-size:11.5px;line-height:1.5;overflow:hidden}
+.blk .lbl{font-size:9.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--muted);
+  display:block;margin-bottom:5px}
+.blk .v{color:#cfd6ea;word-break:break-word}
+.blk.out .v{color:#d8f7ea}
+#answer{border-color:rgba(52,211,153,.35);background:rgba(52,211,153,.07);
+  opacity:0;transform:translateY(6px);transition:.4s}
+#answer.show{opacity:1;transform:none}
+#answer .v{color:#eafff6;font-size:12.5px}
+
+/* run footer */
+.runfoot{display:flex;align-items:center;gap:14px;margin-top:10px;font-size:11.5px;color:var(--muted)}
+.track{flex:1;height:4px;background:var(--line);border-radius:3px;overflow:hidden}
+.track i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--violet),var(--cyan));
+  transition:width .1s linear}
+
+/* ---------- FOOTER ---------- */
+.foot{border-top:1px solid var(--line);padding:52px 0 64px;color:var(--muted);font-size:13px}
+.foot h3{margin:0 0 12px;color:var(--text);font-size:19px;letter-spacing:-.01em}
+.note{border:1px solid rgba(245,158,11,.3);background:rgba(245,158,11,.06);color:#f7d9a8;
+  border-radius:10px;padding:11px 14px;margin:22px 0 0;font-size:12.5px;line-height:1.55}
+
+/* ---------- RESPONSIVE ---------- */
+@media (max-width:900px){
+  #run{height:760vh}
+  .grid{grid-template-columns:1fr;grid-template-rows:1fr auto;gap:10px}
+  .detail{max-height:34vh}
+  .wf,.tk{display:none}
+  .row{height:5.4vh;min-height:23px}
+  .hud{gap:6px 12px}
+}
+@media (prefers-reduced-motion:reduce){
+  *{animation:none!important;transition:none!important}
+  html{scroll-behavior:auto}
+}
+</style>
+</head>
+<body>
+<div id="bar"></div>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="kicker"><span class="dot"></span>Ginvify · spike kỹ thuật</div>
+    <h1>Một trang web.<br><em>Một agent run.</em></h1>
+    <p class="lede">Đây không phải brochure. Đây là <b>trace thật của một agent</b> đang xử lý câu hỏi
+      của một chuỗi bán lẻ Việt Nam — 10 span, từ lúc nhận câu hỏi tới lúc trả kết quả.
+      Cuộn để xem agent làm việc.</p>
+    <div class="hint"><span class="arrow">↓</span> cuộn xuống · mỗi bước là một span trong trace</div>
+  </div>
+</header>
+
+<section id="run">
+  <div class="stage" id="stage">
+    <canvas id="bg"></canvas>
+    <div class="wrap stage-inner">
+
+      <div class="runhead">
+        <span class="brand"><span class="sq"></span>Ginvify</span>
+        <span class="pill mono">run_9f3a2c</span>
+        <span class="pill run mono" id="status">running</span>
+        <span class="hud mono">
+          <span>span <b id="sc">1/10</b></span>
+          <span>elapsed <b id="el">0ms</b></span>
+          <span>tokens <b id="tk">0</b></span>
+          <span>cost <b id="co">$0.0000</b></span>
+        </span>
+      </div>
+
+      <div class="grid">
+        <div class="panel">
+          <div class="phead">Span tree <span class="sp mono" id="scount">0 / 10 done</span></div>
+          <div class="treewrap">
+            <div class="spine"><i id="spinefill"></i></div>
+            <div id="tree"></div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="phead">Span detail <span class="sp mono" id="dkind">—</span></div>
+          <div class="detail">
+            <div class="dtop">
+              <span class="kd" id="dkd" style="--c:#7c5cff">AGENT</span>
+              <span class="dnm mono" id="dnm">agent.retail-ops</span>
+            </div>
+            <div class="dmeta mono">
+              <span>start <b id="dst">0ms</b></span>
+              <span>dur <b id="ddur">—</b></span>
+              <span>in <b id="dtin">0</b></span>
+              <span>out <b id="dtout">0</b></span>
+            </div>
+            <div class="blk"><span class="lbl">Input</span><span class="v mono" id="dvin">—</span></div>
+            <div class="blk out"><span class="lbl">Output</span><span class="v mono" id="dvout">—</span></div>
+            <div class="blk" id="answer"><span class="lbl">Trả khách</span><span class="v" id="dans">—</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="runfoot">
+        <span class="mono" id="fstep">bước 1/10</span>
+        <span class="track"><i id="ftrack"></i></span>
+        <span class="mono" id="fpct">0%</span>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<footer class="foot">
+  <div class="wrap">
+    <h3>Ginvify — agent chạy thật cho doanh nghiệp Việt</h3>
+    <p style="margin:0">Trace này là <b>spike kỹ thuật</b> để chốt hướng thiết kế: ngữ pháp thị giác
+      lấy từ agent observability thật (span tree · waterfall · span detail), dựng thuần DOM/CSS/Canvas 2D,
+      không WebGL, không thư viện ngoài.</p>
+    <p class="note">⚠️ <b>Số liệu mô phỏng.</b> Đây là spike để xem hướng, không phải kết quả thật của
+      khách hàng nào. Trace, token, chi phí, và câu trả lời đều là dữ liệu giả do mình soạn.</p>
+  </div>
+</footer>
+
+<script>
+(function(){
+  'use strict';
+
+  /* ---------- data ---------- */
+  var COLORS = {
+    AGENT:'#7c5cff', GUARDRAIL:'#f59e0b', LLM:'#22d3ee', EMBEDDING:'#34d399',
+    RETRIEVER:'#60a5fa', RERANKER:'#818cf8', TOOL:'#fb923c', EVALUATOR:'#f472b6',
+    OUTPUT:'#a3e635'
+  };
+  var SPANS = [
+    {k:'AGENT',n:'agent.retail-ops',d:3420,ti:0,to:0,
+     vin:'user: "Tết còn 3 tuần — cửa hàng nào sắp hết hàng bán chạy và cần điều chuyển gì?"',
+     vout:'run bắt đầu · 9 bước con · scope: store_ops'},
+    {k:'GUARDRAIL',n:'guardrail.input',d:38,ti:210,to:0,
+     vin:'scan(pii, quyền truy cập)',
+     vout:'pass · 0 trường nhạy cảm · 12/12 cửa hàng được phép'},
+    {k:'LLM',n:'llm.plan',d:820,ti:640,to:180,
+     vin:'plan(question, tools=schema)',
+     vout:'3 bước: truy kho bán hàng → xếp hạng rủi ro hết hàng → đề xuất điều chuyển'},
+    {k:'EMBEDDING',n:'embed.query',d:46,ti:32,to:0,
+     vin:'embed(question, dim=1024)',
+     vout:'vector[1024] · 46ms'},
+    {k:'RETRIEVER',n:'retriever.vector',d:112,ti:24,to:0,
+     vin:'top_k=40 · nguồn: sales, inventory, season',
+     vout:'40 đoạn · 3 nguồn · 0 lỗi'},
+    {k:'RERANKER',n:'rerank.cross-encoder',d:268,ti:1180,to:0,
+     vin:'cross_encoder(40 đoạn)',
+     vout:'8 đoạn giữ lại · điểm 0.91 → 0.62'},
+    {k:'TOOL',n:'tool.sql.inventory',d:480,ti:96,to:0,
+     vin:'sql: tồn kho × 12 cửa hàng × 30 ngày',
+     vout:'12 hàng · 3 cửa hàng dưới ngưỡng 7 ngày'},
+    {k:'LLM',n:'llm.draft',d:1180,ti:2280,to:940,
+     vin:'draft(8 đoạn + kết quả tool)',
+     vout:'câu trả lời + 3 trích dẫn nguồn'},
+    {k:'EVALUATOR',n:'eval.faithfulness',d:320,ti:340,to:116,
+     vin:'faithfulness · citation_check',
+     vout:'điểm 0.94 · 3/3 trích dẫn hợp lệ'},
+    {k:'OUTPUT',n:'output.final',d:68,ti:10,to:0,
+     vin:'finalize(answer)',
+     vout:'3 cửa hàng rủi ro · điều chuyển 240 SP từ kho Long Hậu'}
+  ];
+  var ANSWER = 'Ba cửa hàng dưới ngưỡng 7 ngày: Q.7 (sữa rửa mặt) · Cầu Giấy (kem chống nắng) · ' +
+               'Đà Nẵng (toner). Đề xuất điều chuyển 240 sản phẩm từ kho Long Hậu — tồn hiện tại ' +
+               'đủ bán 18 ngày.';
+
+  var TOTAL_MS = 3420, PRICE_IN = 2.5, PRICE_OUT = 10; /* USD / 1M token */
+  var N = SPANS.length;
+
+  /* cumulative start times: root spans whole run, children run sequentially inside it */
+  var acc = 0, TOTAL_IN = 0, TOTAL_OUT = 0;
+  SPANS.forEach(function(s, i){
+    if (i === 0) { s.start = 0; } else { s.start = acc; acc += s.d; }
+    TOTAL_IN += s.ti; TOTAL_OUT += s.to;
+  });
+  var COST = (TOTAL_IN * PRICE_IN + TOTAL_OUT * PRICE_OUT) / 1e6;
+
+  /* ---------- helpers ---------- */
+  function clamp(v, a, b){ return v < a ? a : (v > b ? b : v); }
+  function fmtMs(ms){
+    ms = Math.round(ms);
+    return ms < 1000 ? ms + 'ms' : (ms / 1000).toFixed(2) + 's';
+  }
+  function fmtTok(n){
+    n = Math.round(n);
+    return n >= 1000 ? (n / 1000).toFixed(1) + 'k' : String(n);
+  }
+  function reduced(){
+    return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  }
+
+  /* ---------- build tree ---------- */
+  var treeEl = document.getElementById('tree');
+  var rows = [];
+  for (var i = 0; i < N; i++){
+    var s = SPANS[i];
+    var c = COLORS[s.k] || '#8b93ab';
+    var row = document.createElement('div');
+    row.className = 'row';
+    row.setAttribute('data-i', String(i));
+    row.innerHTML =
+      '<span class="mark"><b></b></span>' +
+      '<span class="kd" style="--c:' + c + '">' + s.k + '</span>' +
+      '<span class="nm mono">' + s.n + '</span>' +
+      '<span class="wf" style="--c:' + c + '"><i></i></span>' +
+      '<span class="ms mono">' + fmtMs(s.d) + '</span>' +
+      '<span class="tk mono">' + fmtTok(s.ti + s.to) + '</span>';
+    treeEl.appendChild(row);
+
+    var bar = row.querySelector('.wf i');
+    bar.style.left  = (s.start / TOTAL_MS * 100).toFixed(3) + '%';
+    bar.style.width = (s.d / TOTAL_MS * 100).toFixed(3) + '%';
+    rows.push({el:row, bar:bar, span:s});
+  }
+
+  /* ---------- element refs ---------- */
+  var el = {
+    bar:      document.getElementById('bar'),
+    stage:    document.getElementById('stage'),
+    run:      document.getElementById('run'),
+    status:   document.getElementById('status'),
+    sc:       document.getElementById('sc'),
+    el:       document.getElementById('el'),
+    tk:       document.getElementById('tk'),
+    co:       document.getElementById('co'),
+    scount:   document.getElementById('scount'),
+    spine:    document.getElementById('spinefill'),
+    fstep:    document.getElementById('fstep'),
+    ftrack:   document.getElementById('ftrack'),
+    fpct:     document.getElementById('fpct'),
+    dkind:    document.getElementById('dkind'),
+    dkd:      document.getElementById('dkd'),
+    dnm:      document.getElementById('dnm'),
+    dst:      document.getElementById('dst'),
+    ddur:     document.getElementById('ddur'),
+    dtin:     document.getElementById('dtin'),
+    dtout:    document.getElementById('dtout'),
+    dvin:     document.getElementById('dvin'),
+    dvout:    document.getElementById('dvout'),
+    answer:   document.getElementById('answer'),
+    dans:     document.getElementById('dans')
+  };
+
+  /* ---------- ONE visibility source for the run section ---------- */
+  var visible = false, lastP = -1, lastIdx = -1, lastFin = false, rafPending = false;
+  var io = new IntersectionObserver(function(entries){
+    visible = entries[0].isIntersecting;
+  }, {rootMargin:'80px'});
+  io.observe(el.stage);
+
+  /* ---------- detail panel (only on index change) ---------- */
+  function renderDetail(i){
+    var s = SPANS[i], c = COLORS[s.k] || '#8b93ab';
+    el.dkd.style.setProperty('--c', c);
+    el.dkd.textContent = s.k;
+    el.dkind.textContent = s.n;
+    el.dnm.textContent = s.n;
+    el.dst.textContent = fmtMs(s.start);
+    el.ddur.textContent = fmtMs(s.d);
+    el.dtin.textContent = String(s.ti);
+    el.dtout.textContent = String(s.to);
+    el.dvin.textContent = '› ' + s.vin;
+    el.dvout.textContent = '‹ ' + s.vout;
+    if (i === N - 1){
+      el.dans.textContent = ANSWER;
+      el.answer.classList.add('show');
+    } else {
+      el.answer.classList.remove('show');
+    }
+  }
+
+  /* ---------- progress -> state ---------- */
+  function progress(){
+    var rect = el.run.getBoundingClientRect();
+    var span = el.run.offsetHeight - window.innerHeight;
+    if (span <= 0) return 1;
+    return clamp(-rect.top / span, 0, 1);
+  }
+
+  function update(p){
+    if (p === lastP) return;
+    lastP = p;
+
+    var idx = Math.min(N - 1, Math.floor(p * N));
+    var sub = clamp(p * N - idx, 0, 1);
+
+    /* ---- state change: rows + detail ---- */
+    if (idx !== lastIdx){
+      lastIdx = idx;
+      renderDetail(idx);
+      for (var j = 0; j < N; j++){
+        rows[j].el.classList.toggle('done', j < idx);
+        rows[j].el.classList.toggle('on', j === idx);
+        rows[j].bar.style.transform = (j <= idx ? 'scaleX(1)' : 'scaleX(0)');
+      }
+      el.spine.style.height = ((idx + 1) / N * 100).toFixed(2) + '%';
+      el.scount.textContent = idx + ' / ' + N + ' done';
+    }
+
+    /* ---- run completion: depends on sub-progress, so it must run
+           even when idx stays the same ---- */
+    var fin = (idx === N - 1 && sub > 0.85);
+    if (fin !== lastFin){
+      lastFin = fin;
+      el.status.textContent = fin ? 'ok' : 'running';
+      el.status.className = 'pill mono ' + (fin ? 'done' : 'run');
+      rows[N - 1].el.classList.toggle('done', fin);
+      rows[N - 1].el.classList.toggle('on', !fin);
+      el.scount.textContent = (fin ? N : idx) + ' / ' + N + ' done';
+    }
+
+    /* ---- live HUD ---- */
+    var cur = SPANS[idx];
+    var ms = cur.start + sub * cur.d;
+    var tin = 0, tout = 0;
+    for (var q = 0; q < idx; q++){ tin += SPANS[q].ti; tout += SPANS[q].to; }
+    tin  += sub * cur.ti;
+    tout += sub * cur.to;
+    var cost = (tin * PRICE_IN + tout * PRICE_OUT) / 1e6;
+
+    el.sc.textContent = (idx + 1) + '/' + N;
+    el.el.textContent = fmtMs(ms);
+    el.tk.textContent = fmtTok(tin + tout);
+    el.co.textContent = '$' + cost.toFixed(4);
+    el.fstep.textContent = 'bước ' + (idx + 1) + '/' + N;
+    el.ftrack.style.width = (p * 100).toFixed(2) + '%';
+    el.fpct.textContent = Math.round(p * 100) + '%';
+    el.bar.style.width = (p * 100).toFixed(2) + '%';
+  }
+
+  function onScroll(){
+    if (rafPending) return;
+    rafPending = true;
+    requestAnimationFrame(function(){
+      rafPending = false;
+      if (!visible) return;          /* gated: no work while stage is off-screen */
+      update(progress());
+    });
+  }
+
+  /* ---------- background canvas: cheap 2D dots, gated ---------- */
+  var cv = document.getElementById('bg'), cx = cv.getContext('2d');
+  var CW = 0, CH = 0, DPR = 1, pts = [], bgRaf = 0, bgDrawn = false;
+
+  function seedPoints(){
+    pts = [];
+    var count = CW < 700 ? 26 : 46;
+    for (var k = 0; k < count; k++){
+      pts.push({
+        x: Math.random() * CW, y: Math.random() * CH,
+        vx: (Math.random() - 0.5) * 0.16, vy: (Math.random() - 0.5) * 0.16,
+        r: Math.random() * 1.5 + 0.7
+      });
+    }
+  }
+
+  function sizeCanvas(){
+    var r = cv.getBoundingClientRect();
+    DPR = Math.min(window.devicePixelRatio || 1, 2);
+    CW = Math.round(r.width); CH = Math.round(r.height);
+    if (CW <= 0 || CH <= 0) return;
+    cv.width  = Math.round(CW * DPR);
+    cv.height = Math.round(CH * DPR);
+    cx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    seedPoints();
+    drawBg(false);
+  }
+
+  function drawBg(step){
+    if (CW <= 0 || CH <= 0) return;
+    cx.clearRect(0, 0, CW, CH);
+    var k, j, a, b, dx, dy, d2;
+    /* links first */
+    cx.lineWidth = 1;
+    for (k = 0; k < pts.length; k++){
+      for (j = k + 1; j < pts.length; j++){
+        a = pts[k]; b = pts[j];
+        dx = a.x - b.x; dy = a.y - b.y; d2 = dx*dx + dy*dy;
+        if (d2 < 16900){
+          cx.strokeStyle = 'rgba(124,92,255,' + (0.1 * (1 - d2 / 16900)).toFixed(3) + ')';
+          cx.beginPath(); cx.moveTo(a.x, a.y); cx.lineTo(b.x, b.y); cx.stroke();
+        }
+      }
+    }
+    /* dots */
+    for (k = 0; k < pts.length; k++){
+      a = pts[k];
+      cx.fillStyle = 'rgba(120,200,255,.34)';
+      cx.beginPath(); cx.arc(a.x, a.y, a.r, 0, 6.2832); cx.fill();
+      if (step){
+        a.x += a.vx; a.y += a.vy;
+        if (a.x < -20) a.x = CW + 20; if (a.x > CW + 20) a.x = -20;
+        if (a.y < -20) a.y = CH + 20; if (a.y > CH + 20) a.y = -20;
+      }
+    }
+  }
+
+  function bgLoop(){
+    bgRaf = 0;
+    if (!visible || document.hidden){ return; }
+    drawBg(true);
+    bgRaf = requestAnimationFrame(bgLoop);
+  }
+
+  function startBg(){
+    if (reduced()){ bgDrawn = true; drawBg(false); return; }
+    if (!bgRaf) bgRaf = requestAnimationFrame(bgLoop);
+  }
+  function stopBg(){
+    if (bgRaf){ cancelAnimationFrame(bgRaf); bgRaf = 0; }
+  }
+
+  /* ---------- boot ---------- */
+  var ro = null;
+  window.addEventListener('resize', function(){
+    if (ro) clearTimeout(ro);
+    ro = setTimeout(sizeCanvas, 140);
+  });
+  window.addEventListener('scroll', onScroll, {passive:true});
+
+  /* re-evaluate the gate on IO changes without a scroll event */
+  var gateIo = new IntersectionObserver(function(entries){
+    if (entries[0].isIntersecting){ startBg(); onScroll(); }
+    else stopBg();
+  }, {rootMargin:'0px'});
+  gateIo.observe(el.stage);
+
+  sizeCanvas();
+
+  if (reduced()){
+    /* one static frame, no scrolling tricks */
+    el.answer.classList.add('show');
+    el.dans.textContent = ANSWER;
+    for (var z = 0; z < N; z++){
+      rows[z].el.classList.add('done');
+      rows[z].bar.style.transform = 'scaleX(1)';
+    }
+    rows[N-1].el.classList.add('on');
+    el.spine.style.height = '100%';
+    lastP = -1;
+    update(1);
+  } else {
+    renderDetail(0);
+    update(0);
+    onScroll();
+  }
+})();
+</script>
+</body>
+</html>
