@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ginvify — Hệ thống AI chạy thật cho doanh nghiệp</title>
+<meta name="description" content="Ginvify thiết kế, xây dựng và vận hành hệ thống AI cho doanh nghiệp Việt Nam: agent tự động hoá, trợ lý tri thức nội bộ, MLOps.">
+<style>
+:root{
+  --bg:#06070d;
+  --bg2:#080a12;
+  --surface:#0d1019;
+  --surface2:#121627;
+  --text:#eef1f8;
+  --muted:#8b93ab;
+  --violet:#7c5cff;
+  --cyan:#22d3ee;
+  --line:#1b2033;
+  --max:1080px;
+  --r:16px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;background:var(--bg);color:var(--text);
+  font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;line-height:1.6;overflow-x:hidden;
+}
+a{color:inherit;text-decoration:none}
+.wrap{max-width:var(--max);margin:0 auto;padding:0 22px}
+
+/* ---------- progress + nav ---------- */
+#bar{position:fixed;top:0;left:0;height:2px;width:0;z-index:60;
+  background:linear-gradient(90deg,var(--violet),var(--cyan))}
+nav{position:fixed;top:0;left:0;right:0;z-index:50;
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  background:rgba(6,7,13,.72);border-bottom:1px solid rgba(27,32,51,.8)}
+nav .inner{max-width:var(--max);margin:0 auto;padding:13px 22px;display:flex;align-items:center;gap:22px}
+.logo{font-weight:750;letter-spacing:-.02em;font-size:18px;display:flex;align-items:center;gap:9px}
+.logo i{width:10px;height:10px;border-radius:3px;display:inline-block;
+  background:linear-gradient(135deg,var(--violet),var(--cyan));box-shadow:0 0 14px rgba(124,92,255,.7)}
+nav .links{margin-left:auto;display:flex;gap:20px;font-size:14px;color:var(--muted)}
+nav .links a:hover{color:var(--text)}
+@media(max-width:720px){nav .links{display:none}}
+
+/* ---------- type ---------- */
+.kicker{font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--cyan);font-weight:700}
+h1{font-size:clamp(30px,5.2vw,58px);line-height:1.08;letter-spacing:-.03em;margin:16px 0 18px;font-weight:760}
+h1 em{font-style:normal;background:linear-gradient(100deg,var(--violet),var(--cyan));
+  -webkit-background-clip:text;background-clip:text;color:transparent}
+h2{font-size:clamp(22px,3.4vw,36px);line-height:1.15;letter-spacing:-.025em;margin:0 0 12px;font-weight:730}
+h2 em{font-style:normal;background:linear-gradient(100deg,var(--violet),var(--cyan));
+  -webkit-background-clip:text;background-clip:text;color:transparent}
+.lede{color:var(--muted);font-size:17px;max-width:62ch}
+.sec{padding:110px 0}
+.sec-head{max-width:70ch;margin-bottom:34px}
+
+/* ---------- buttons ---------- */
+.btn{display:inline-flex;align-items:center;gap:9px;font:inherit;font-size:14.5px;font-weight:650;
+  padding:12px 22px;border-radius:999px;cursor:pointer;border:1px solid transparent;
+  background:linear-gradient(100deg,var(--violet),var(--cyan));color:#07080f;transition:transform .18s,box-shadow .18s}
+.btn:hover{transform:translateY(-2px);box-shadow:0 12px 30px -12px rgba(124,92,255,.75)}
+.btn.ghost{background:transparent;color:var(--text);border-color:var(--line)}
+.btn.ghost:hover{border-color:var(--violet);box-shadow:none}
+
+/* ---------- hero ---------- */
+header{padding:150px 0 0}
+.hero-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:38px;align-items:center}
+@media(max-width:900px){.hero-grid{grid-template-columns:1fr;gap:26px}header{padding-top:120px}}
+.cta-row{display:flex;gap:12px;flex-wrap:wrap;margin-top:28px}
+.hero-canvas-box{position:relative;border:1px solid var(--line);border-radius:var(--r);
+  background:radial-gradient(120% 100% at 70% 10%,rgba(124,92,255,.16),transparent 60%),var(--surface);
+  overflow:hidden;aspect-ratio:1/1}
+@media(max-width:900px){.hero-canvas-box{aspect-ratio:16/11}}
+.hero-canvas-box canvas{display:block;width:100%;height:100%}
+.hero-canvas-box .tag{position:absolute;left:14px;bottom:12px;font-size:11.5px;color:var(--muted);
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:56px}
+@media(max-width:640px){.stats{grid-template-columns:1fr}}
+.stat{border:1px solid var(--line);border-radius:var(--r);padding:20px 22px;background:var(--surface)}
+.stat b{display:block;font-size:30px;letter-spacing:-.02em;
+  background:linear-gradient(100deg,var(--violet),var(--cyan));-webkit-background-clip:text;background-clip:text;color:transparent}
+.stat span{color:var(--muted);font-size:13.5px}
+
+/* ---------- reveal ---------- */
+.rv{opacity:0;transform:translateY(26px);transition:opacity .7s cubic-bezier(.16,1,.3,1),transform .7s cubic-bezier(.16,1,.3,1)}
+.rv.in{opacity:1;transform:none}
+
+/* ---------- stage (scroll sections) ---------- */
+.stage{position:relative}
+.sticky{position:sticky;top:0;min-height:100vh;display:flex;flex-direction:column;justify-content:center;padding:80px 0}
+
+/* ---------- stack ---------- */
+.stack-box{display:grid;grid-template-columns:1.15fr .85fr;gap:34px;align-items:center}
+@media(max-width:900px){.stack-box{grid-template-columns:1fr;gap:22px}}
+.layers{display:flex;flex-direction:column;gap:12px}
+.layer{border:1px solid var(--line);border-radius:13px;padding:16px 20px;background:var(--surface);
+  display:flex;align-items:center;gap:16px;cursor:pointer;position:relative;overflow:hidden;
+  transition:border-color .25s,background .25s,transform .35s cubic-bezier(.16,1,.3,1)}
+.layer::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;
+  background:linear-gradient(var(--violet),var(--cyan));opacity:.35;transition:opacity .25s}
+.layer.on{border-color:rgba(124,92,255,.65);background:var(--surface2)}
+.layer.on::before{opacity:1}
+.layer .n{font-family:ui-monospace,monospace;font-size:12px;color:var(--cyan);min-width:26px}
+.layer .t{font-weight:650;font-size:15.5px}
+.layer .s{color:var(--muted);font-size:13px}
+.layer .d{margin-top:2px}
+.layer-body{color:var(--muted);font-size:14px}
+.layer-body h4{margin:0 0 6px;color:var(--text);font-size:15px}
+.layer-body ul{margin:8px 0 0;padding-left:18px}
+.layer-body li{margin-bottom:5px}
+
+/* ---------- services ---------- */
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+@media(max-width:900px){.cards{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:600px){.cards{grid-template-columns:1fr}}
+.card{border:1px solid var(--line);border-radius:var(--r);padding:22px;background:var(--surface);
+  transition:border-color .25s,transform .25s}
+.card:hover{border-color:rgba(34,211,238,.5);transform:translateY(-3px)}
+.card .ico{width:34px;height:34px;border-radius:9px;margin-bottom:14px;display:grid;place-items:center;
+  background:linear-gradient(135deg,rgba(124,92,255,.28),rgba(34,211,238,.22));border:1px solid var(--line);font-size:16px}
+.card h3{margin:0 0 8px;font-size:16.5px;letter-spacing:-.01em}
+.card p{margin:0;color:var(--muted);font-size:14px}
+
+/* ---------- why ---------- */
+.why{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+@media(max-width:720px){.why{grid-template-columns:1fr}}
+.why-i{display:flex;gap:14px;border:1px solid var(--line);border-radius:14px;padding:18px 20px;background:var(--surface)}
+.why-i b{color:var(--cyan);font-family:ui-monospace,monospace;font-size:13px}
+.why-i p{margin:3px 0 0;color:var(--muted);font-size:14px}
+.why-i h3{margin:0;font-size:15.5px}
+
+/* ---------- util boxes ---------- */
+.canvas-box{border:1px solid var(--line);border-radius:var(--r);background:var(--surface);overflow:hidden}
+.canvas-box canvas{display:block;width:100%;height:auto}
+.hud{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-top:12px;font-size:12.5px;color:var(--muted)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-variant-numeric:tabular-nums}
+
+/* ---------- CTA + footer ---------- */
+.cta{border:1px solid var(--line);border-radius:22px;padding:52px 40px;text-align:center;
+  background:radial-gradient(110% 120% at 50% 0%,rgba(124,92,255,.2),transparent 62%),var(--surface)}
+@media(max-width:600px){.cta{padding:38px 22px}}
+footer{border-top:1px solid var(--line);margin-top:90px;padding:44px 0 60px;color:var(--muted);font-size:13.5px}
+.fgrid{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap}
+footer a:hover{color:var(--text)}
+.note{font-size:12px;color:#5d6480;margin-top:26px}
+</style>
+</head>
+<body>
+<div id="bar"></div>
+
+<nav><div class="inner">
+  <a class="logo" href="#top"><i></i>Ginvify</a>
+  <div class="links">
+    <a href="#agent">Năng lực</a>
+    <a href="#stack">Kiến trúc</a>
+    <a href="#demo">Quy trình</a>
+    <a href="#dichvu">Dịch vụ</a>
+    <a href="#lienhe">Liên hệ</a>
+  </div>
+</div></nav>
+
+<header id="top"><div class="wrap">
+  <div class="hero-grid">
+    <div>
+      <div class="kicker rv">Công ty công nghệ AI · Việt Nam</div>
+      <h1 class="rv">Hệ thống AI <em>chạy thật</em> trong doanh nghiệp của bạn</h1>
+      <p class="lede rv">Ginvify thiết kế, xây dựng và vận hành hệ thống AI — từ dữ liệu thô đến agent tự động hoá
+      quy trình. Không phải bản demo để trình diễn. Là hệ thống nhân viên bạn dùng mỗi ngày.</p>
+      <div class="cta-row rv">
+        <a class="btn" href="#lienhe">Đặt lịch tư vấn →</a>
+        <a class="btn ghost" href="#stack">Xem kiến trúc</a>
+      </div>
+    </div>
+    <div class="hero-canvas-box rv">
+      <canvas id="graph"></canvas>
+      <div class="tag">agent graph · request chạy qua từng node</div>
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat rv"><b data-count="24">0</b><span>Hệ thống AI đã bàn giao</span></div>
+    <div class="stat rv"><b data-count="98" data-suffix="%">0</b><span>Tỷ lệ trích nguồn chính xác</span></div>
+    <div class="stat rv"><b data-count="6" data-suffix=" tuần">0</b><span>Thời gian tới bản chạy đầu tiên</span></div>
+  </div>
+</div></header>
+
+<!-- ============ ① AGENT GRAPH ============ -->
+<section class="sec" id="agent"><div class="wrap">
+  <div class="sec-head">
+    <div class="kicker rv">Năng lực cốt lõi</div>
+    <h2 class="rv">Chúng tôi xây <em>agent</em>, không chỉ gọi API</h2>
+    <p class="lede rv">Một con LLM gọi thẳng ra ngoài thì không ai dám cho nó động vào hệ thống thật.
+    Ginvify dựng lớp điều phối ở giữa: agent biết dùng tool nào, khi nào dừng, và trả về bằng chứng.</p>
+  </div>
+  <div class="canvas-box rv"><canvas id="agentcanvas"></canvas></div>
+  <div class="hud rv">
+    <span class="mono">nodes <b id="gn">0</b></span>
+    <span class="mono">edges <b id="ge">0</b></span>
+    <span class="mono">requests đang chạy <b id="gp">0</b></span>
+    <span>💡 rê chuột lên đồ thị để bơm request mới</span>
+  </div>
+</div></section>
+
+<!-- ============ ② EXPLODED STACK ============ -->
+<section class="stage" id="stack" data-stage="stack" style="height:280vh">
+  <div class="sticky"><div class="wrap">
+    <div class="sec-head rv">
+      <div class="kicker">Kiến trúc</div>
+      <h2>Một hệ thống AI gồm <em>5 tầng</em></h2>
+      <p class="lede">Cuộn để lắp từng tầng. Bấm vào một tầng để xem Ginvify làm gì ở đó —
+      đây chính là phạm vi công việc, không phải hình minh hoạ.</p>
+    </div>
+    <div class="stack-box">
+      <div class="layers" id="layers"></div>
+      <div class="layer-body" id="layerBody"></div>
+    </div>
+  </div></div>
+</section>
+
+<!-- ============ ③ DATA → ORDER ============ -->
+<section class="stage" id="data" data-stage="data" style="height:240vh">
+  <div class="sticky"><div class="wrap">
+    <div class="sec-head rv">
+      <div class="kicker">Giá trị</div>
+      <h2>Từ <em>dữ liệu hỗn loạn</em> đến quyết định</h2>
+      <p class="lede">Doanh nghiệp không thiếu dữ liệu — thiếu chỗ biến dữ liệu thành câu trả lời.
+      Cuộn tiếp: đám dữ liệu rời rạc tự tụ lại thành cấu trúc dùng được.</p>
+    </div>
+    <div class="canvas-box rv"><canvas id="datacanvas"></canvas></div>
+    <div class="hud rv">
+      <span class="mono">điểm dữ liệu <b id="dn">0</b></span>
+      <span class="mono">mức cấu trúc <b id="dp">0%</b></span>
+    </div>
+  </div></div>
+</section>
+
+<!-- ============ ④ DEMO SCRUB ============ -->
+<section class="stage" id="demo" data-stage="demo" style="height:320vh">
+  <div class="sticky"><div class="wrap">
+    <div class="sec-head rv">
+      <div class="kicker">Quy trình</div>
+      <h2>Một pipeline RAG <em>chạy thật</em></h2>
+      <p class="lede">Cuộn để chạy từng bước — từ tài liệu thô đến câu trả lời có trích nguồn.
+      Đây là cách bọn mình demo cho khách, thay vì video không tua lại được.</p>
+    </div>
+    <div class="canvas-box rv"><canvas id="democanvas"></canvas></div>
+    <div class="hud rv">
+      <span class="mono">bước <b id="sn">1</b> / 5</span>
+      <span id="slabel" style="color:#eef1f8">—</span>
+    </div>
+  </div></div>
+</section>
+
+<!-- ============ SERVICES ============ -->
+<section class="sec" id="dichvu"><div class="wrap">
+  <div class="sec-head">
+    <div class="kicker rv">Dịch vụ</div>
+    <h2 class="rv">Làm gì — và <em>không</em> làm gì</h2>
+    <p class="lede rv">Bọn mình chỉ nhận việc có thể bàn giao và vận hành được. Không nhận "làm AI" chung chung.</p>
+  </div>
+  <div class="cards">
+    <div class="card rv"><div class="ico">⚙️</div><h3>Agent &amp; tự động hoá quy trình</h3><p>Thay các bước thủ công lặp lại bằng agent có tool, guardrail và log kiểm toán.</p></div>
+    <div class="card rv"><div class="ico">📚</div><h3>Trợ lý tri thức nội bộ</h3><p>Hỏi đáp trên tài liệu, quy trình, hợp đồng của công ty — trả lời kèm trích nguồn.</p></div>
+    <div class="card rv"><div class="ico">🧱</div><h3>Data engineering cho AI</h3><p>Thu thập, làm sạch, phân đoạn, nhúng vector. Phần lớn dự án AI chết ở đây.</p></div>
+    <div class="card rv"><div class="ico">📈</div><h3>MLOps &amp; vận hành mô hình</h3><p>Đo chất lượng, phát hiện suy giảm, kiểm soát chi phí token theo thời gian thực.</p></div>
+    <div class="card rv"><div class="ico">🔌</div><h3>Tích hợp LLM vào sản phẩm</h3><p>Nhúng AI vào web/app đang chạy, không viết lại hệ thống của bạn.</p></div>
+    <div class="card rv"><div class="ico">🧭</div><h3>Tư vấn &amp; đánh giá</h3><p>Rà soát bài toán, chọn kiến trúc, ước lượng chi phí trước khi cam kết làm.</p></div>
+  </div>
+</div></section>
+
+<!-- ============ WHY ============ -->
+<section class="sec" id="vìsao"><div class="wrap">
+  <div class="sec-head">
+    <div class="kicker rv">Vì sao chọn Ginvify</div>
+    <h2 class="rv">Cam kết bằng <em>vận hành</em>, không bằng slide</h2>
+  </div>
+  <div class="why">
+    <div class="why-i rv"><b>01</b><div><h3>Kỹ sư thực chiến</h3><p>Người trực tiếp viết code cũng là người trao đổi với bạn. Không qua lớp trung gian.</p></div></div>
+    <div class="why-i rv"><b>02</b><div><h3>Bàn giao kèm vận hành</h3><p>Có giai đoạn chạy song song, đo chất lượng, rồi mới bàn giao hẳn.</p></div></div>
+    <div class="why-i rv"><b>03</b><div><h3>Chi phí minh bạch</h3><p>Ước lượng cả chi phí model và hạ tầng ngay từ đề xuất — không phát sinh sau.</p></div></div>
+    <div class="why-i rv"><b>04</b><div><h3>Dữ liệu ở lại với bạn</h3><p>Kiến trúc ưu tiên chạy nội bộ hoặc VPC riêng; phân quyền và log kiểm toán đầy đủ.</p></div></div>
+  </div>
+</div></section>
+
+<!-- ============ CTA ============ -->
+<section class="sec" id="lienhe"><div class="wrap">
+  <div class="cta rv">
+    <h2 style="margin-bottom:10px">Bắt đầu từ <em>một bài toán cụ thể</em></h2>
+    <p class="lede" style="margin:0 auto 26px">Gửi bọn mình quy trình đang tốn thời gian nhất của bạn.
+    Trong 30 phút trao đổi, bạn sẽ biết bài đó có làm được bằng AI không — và tốn bao nhiêu.</p>
+    <div class="cta-row" style="justify-content:center">
+      <a class="btn" href="mailto:hello@ginvify.vn">hello@ginvify.vn</a>
+      <a class="btn ghost" href="#top">Về đầu trang</a>
+    </div>
+  </div>
+</div></section>
+
+<footer><div class="wrap">
+  <div class="fgrid">
+    <div>
+      <div class="logo" style="margin-bottom:10px"><i></i>Ginvify</div>
+      <div>Công ty công nghệ AI · Việt Nam</div>
+    </div>
+    <div>
+      <div style="color:#eef1f8;margin-bottom:8px;font-weight:650">Liên hệ</div>
+      <div>hello@ginvify.vn</div>
+      <div>+84 ___ ___ ___</div>
+    </div>
+    <div>
+      <div style="color:#eef1f8;margin-bottom:8px;font-weight:650">Đi tới</div>
+      <div><a href="#agent">Năng lực</a> · <a href="#stack">Kiến trúc</a> · <a href="#dichvu">Dịch vụ</a></div>
+    </div>
+  </div>
+  <div class="note">Prototype nội bộ — số liệu trong trang là mẫu, cần thay bằng số thật trước khi công bố.</div>
+</div></footer>
+
+<script>
+(() => {
+'use strict';
+const clamp=(v,a,b)=>v<a?a:v>b?b:v;
+const lerp=(a,b,t)=>a+(b-a)*t;
+const easeOut=t=>1-Math.pow(1-t,3);
+const DPR=Math.min(window.devicePixelRatio||1,2);
+const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const idle=cb=>window.requestIdleCallback?window.requestIdleCallback(cb,{timeout:16}):setTimeout(cb,16);
+
+/* ================= reveal + counter ================= */
+const ior=new IntersectionObserver(es=>{
+  for(const e of es){
+    if(!e.isIntersecting) continue;
+    e.target.classList.add('in');
+    ior.unobserve(e.target);
+    const c=e.target.querySelector?.('[data-count]');
+    if(c) countUp(c);
+  }
+},{rootMargin:'0px 0px -12% 0px'});
+document.querySelectorAll('.rv').forEach(el=>ior.observe(el));
+
+function countUp(el){
+  const target=parseFloat(el.dataset.count)||0;
+  const suffix=el.dataset.suffix||'';
+  if(reduced){ el.textContent=target+suffix; return; }
+  const t0=performance.now(), dur=1300;
+  const step=now=>{
+    const p=clamp((now-t0)/dur,0,1);
+    el.textContent=Math.round(target*easeOut(p))+suffix;
+    if(p<1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+
+/* ================= ① AGENT GRAPH ================= */
+const graph=document.getElementById('graph');
+const gctx=graph.getContext('2d');
+
+const NODES=[
+  {x:.16,y:.30,t:'Dữ liệu'},
+  {x:.42,y:.17,t:'Vector DB'},
+  {x:.66,y:.30,t:'LLM'},
+  {x:.86,y:.52,t:'Tools'},
+  {x:.30,y:.62,t:'Người dùng'},
+  {x:.55,y:.72,t:'Agent'},
+  {x:.80,y:.80,t:'API nội bộ'},
+  {x:.14,y:.84,t:'Guardrail'}
+];
+const EDGES=[[0,1],[1,2],[2,3],[4,5],[5,2],[5,6],[7,5],[0,5],[3,6]];
+let packets=[], pulse=new Array(NODES.length).fill(0), gVisible=true, gW=0, gH=0;
+
+function sizeGraph(){
+  const r=graph.getBoundingClientRect();
+  if(!r.width) return;
+  gW=r.width; gH=r.height;
+  graph.width=Math.round(gW*DPR); graph.height=Math.round(gH*DPR);
+  gctx.setTransform(DPR,0,0,DPR,0,0);
+}
+
+function spawn(){
+  const ei=(Math.random()*EDGES.length)|0;
+  packets.push({e:ei,t:0,sp:.006+Math.random()*.008,done:false});
+  if(packets.length>26) packets.shift();
+}
+
+function drawGraph(){
+  if(!gW) return;
+  gctx.clearRect(0,0,gW,gH);
+  const P=i=>({x:NODES[i].x*gW,y:NODES[i].y*gH});
+
+  // edges
+  for(const [a,b] of EDGES){
+    const p=P(a), q=P(b);
+    gctx.strokeStyle='rgba(124,92,255,.22)';
+    gctx.lineWidth=1.2;
+    gctx.beginPath(); gctx.moveTo(p.x,p.y); gctx.lineTo(q.x,q.y); gctx.stroke();
+  }
+  // packets
+  for(const pk of packets){
+    const edge=EDGES[pk.e];
+    if(!edge){ pk.done=true; continue; }
+    const a=edge[0], b=edge[1], p=P(a), q=P(b);
+    const x=lerp(p.x,q.x,pk.t), y=lerp(p.y,q.y,pk.t);
+    gctx.fillStyle='#22d3ee';
+    gctx.shadowColor='#22d3ee'; gctx.shadowBlur=12;
+    gctx.beginPath(); gctx.arc(x,y,2.6,0,Math.PI*2); gctx.fill();
+    gctx.shadowBlur=0;
+    pk.t+=pk.sp;
+    if(pk.t>=1){ pk.t=1; pk.done=true; pulse[b]=1; }
+  }
+  packets=packets.filter(pk=>!pk.done);
+
+  // nodes
+  for(let i=0;i<NODES.length;i++){
+    const p=P(i), pu=pulse[i];
+    const r=5+pu*4;
+    if(pu>0){
+      gctx.strokeStyle=`rgba(34,211,238,${pu*.55})`;
+      gctx.lineWidth=1.5;
+      gctx.beginPath(); gctx.arc(p.x,p.y,r+7*(1-pu)+7,0,Math.PI*2); gctx.stroke();
+    }
+    gctx.fillStyle=pu>0?'#7c5cff':'#2a3350';
+    gctx.shadowColor='#7c5cff'; gctx.shadowBlur=pu>0?18:6;
+    gctx.beginPath(); gctx.arc(p.x,p.y,r,0,Math.PI*2); gctx.fill();
+    gctx.shadowBlur=0;
+    gctx.fillStyle=pu>0?'#eef1f8':'#8b93ab';
+    gctx.font='500 11.5px ui-sans-serif,system-ui,sans-serif';
+    gctx.textAlign='center';
+    gctx.fillText(NODES[i].t,p.x,p.y+r+15);
+    pulse[i]=Math.max(0,pu-.03);
+  }
+}
+
+/* ================= ② EXPLODED STACK ================= */
+const LAYERS=[
+  {n:'01',t:'Tầng dữ liệu',s:'Data layer',h:'Biến tài liệu rời rạc thành nguồn sự thật',
+   li:['Kết nối SharePoint, Drive, ERP, database nội bộ','Làm sạch, chuẩn hoá, phân đoạn theo ngữ nghĩa','Metadata + phân quyền theo vai trò']},
+  {n:'02',t:'Tầng truy xuất',s:'Retrieval / RAG',h:'Tìm đúng ngữ cảnh trước khi hỏi model',
+   li:['Vector search + keyword search kết hợp','Xếp hạng lại kết quả (reranking)','Lọc theo quyền người hỏi']},
+  {n:'03',t:'Tầng mô hình',s:'Model layer',h:'Chọn model theo bài toán, không theo trend',
+   li:['So sánh model nội bộ / API theo chi phí & độ chính xác','Tinh chỉnh khi thật cần thiết','Cache và định tuyến để giảm chi phí token']},
+  {n:'04',t:'Tầng điều phối',s:'Orchestration / Agent',h:'Nơi agent biết dùng tool nào và dừng ở đâu',
+   li:['Tool calling có kiểm soát','Guardrail: chặn hành vi ngoài phạm vi','Log kiểm toán toàn bộ quyết định']},
+  {n:'05',t:'Tầng ứng dụng',s:'App layer',h:'Chỗ nhân viên thật sự chạm vào',
+   li:['Chat nội bộ, dashboard, API cho hệ thống khác','Đo chất lượng bằng phản hồi người dùng','Bàn giao kèm tài liệu vận hành']}
+];
+
+const layersEl=document.getElementById('layers');
+const bodyEl=document.getElementById('layerBody');
+let activeLayer=1;
+LAYERS.forEach((L,i)=>{
+  const d=document.createElement('div');
+  d.className='layer'+(i===activeLayer?' on':'');
+  d.dataset.i=i;
+  d.innerHTML=`<span class="n">${L.n}</span><div><div class="t">${L.t}</div><div class="s">${L.s}</div></div>`;
+  d.addEventListener('click',()=>{ activeLayer=i; syncLayers(); });
+  d.addEventListener('mouseenter',()=>{ activeLayer=i; syncLayers(); });
+  layersEl.appendChild(d);
+});
+function syncLayers(){
+  [...layersEl.children].forEach((el,i)=>el.classList.toggle('on',i===activeLayer));
+  const L=LAYERS[activeLayer];
+  bodyEl.innerHTML=`<h4>${L.h}</h4><div>${L.t} — ${L.s}</div><ul>${L.li.map(x=>`<li>${x}</li>`).join('')}</ul>`;
+}
+syncLayers();
+
+function renderStack(p){
+  const els=[...layersEl.children];
+  els.forEach((el,i)=>{
+    const s=i*0.13, e=s+0.5;
+    const t=clamp((p-s)/(e-s),0,1);
+    const dir=i%2?-1:1;
+    const x=lerp(dir*90,0,easeOut(t));
+    const o=lerp(0,1,clamp(t*1.6,0,1));
+    el.style.transform=`translateX(${x.toFixed(1)}px)`;
+    el.style.opacity=o.toFixed(2);
+  });
+}
+
+/* ================= ③ DATA → ORDER ================= */
+const dc=document.getElementById('datacanvas');
+const dctx=dc.getContext('2d');
+let dpts=[], dW=0, dH=0;
+const DGW=1000, DGH=520;
+
+// đích: biểu đồ cột + đường xu hướng ("dữ liệu thành cấu trúc")
+const BARS=[{x:120,w:70,h:130},{x:230,w:70,h:200},{x:340,w:70,h:165},{x:450,w:70,h:265},
+            {x:560,w:70,h:230},{x:670,w:70,h:320},{x:780,w:70,h:290}];
+function buildData(){
+  const targets=[];
+  for(const b of BARS){
+    for(let y=DGH-70-b.h; y<DGH-70; y+=9){
+      for(let x=b.x; x<b.x+b.w; x+=9) targets.push({x,y});
+    }
+  }
+  // đường xu hướng
+  for(let i=0;i<BARS.length-1;i++){
+    const a={x:BARS[i].x+BARS[i].w/2, y:DGH-70-BARS[i].h-24};
+    const b={x:BARS[i+1].x+BARS[i+1].w/2, y:DGH-70-BARS[i+1].h-24};
+    for(let t=0;t<=1;t+=.06) targets.push({x:lerp(a.x,b.x,t),y:lerp(a.y,b.y,t)});
+  }
+  const GAP=9;
+  dpts=targets.map((tg,i)=>{
+    const a=Math.random()*Math.PI*2, r=260+Math.random()*260;
+    return {
+      tx:tg.x, ty:tg.y,
+      sx:DGW/2+Math.cos(a)*r, sy:DGH/2+Math.sin(a)*r,
+      x:0,y:0, vx:0, vy:0, ph:Math.random()*Math.PI*2,
+      col: tg.y < DGH-70-BARS[Math.min(6,Math.floor(tg.x/110))%7].h+40 ? '#7c5cff' : '#22d3ee'
+    };
+  });
+  document.getElementById('dn').textContent=dpts.length.toLocaleString('en-US');
+}
+
+function sizeData(){
+  const r=dc.getBoundingClientRect();
+  if(!r.width) return;
+  const s=Math.min(dc.parentElement.clientWidth||DGW, DGW);
+  dW=dc.parentElement.clientWidth||DGW; dH=Math.round(dW*DGH/DGW);
+  dc.width=Math.round(dW*DPR); dc.height=Math.round(dH*DPR);
+  dc.style.height=dH+'px';
+  dctx.setTransform(DPR,0,0,DPR,0,0);
+}
+
+let dProg=0;
+function drawData(prog){
+  if(!dW) return;
+  const k=dW/DGW;
+  dctx.clearRect(0,0,dW,dH);
+  dctx.fillStyle='rgba(124,92,255,.10)';
+  dctx.fillRect(0,0,dW,dH);
+  const t=clamp(prog,0,1), e=easeOut(t);
+  for(const p of dpts){
+    const x=lerp(p.sx,p.tx,e), y=lerp(p.sy,p.ty,e);
+    const j=reduced?0:Math.sin(performance.now()*.001+p.ph)*(1-e)*6;
+    dctx.fillStyle=e>.75?p.col:'rgba(139,147,171,.75)';
+    const s=e>.75?3.2:2.4;
+    dctx.fillRect(x*k, (y+j)*k, s, s);
+  }
+  document.getElementById('dp').textContent=Math.round(t*100)+'%';
+}
+
+/* ================= ④ DEMO SCRUB ================= */
+const demo=document.getElementById('democanvas');
+const xctx=demo.getContext('2d');
+const DW=1000, DH=560;
+const STEPS=[
+  {t:'Tải tài liệu lên',d:'PDF, Word, Excel, email — kéo thả vào kho tri thức.'},
+  {t:'Bóc tách & phân đoạn',d:'Đọc nội dung, tách theo ngữ nghĩa, gắn metadata.'},
+  {t:'Nhúng vector',d:'Chuyển từng đoạn thành vector để tìm theo nghĩa.'},
+  {t:'Truy xuất ngữ cảnh',d:'Kéo về đúng đoạn liên quan, lọc theo quyền truy cập.'},
+  {t:'Agent trả lời + trích nguồn',d:'Câu trả lời kèm nguồn để đối chiếu, không bịa.'}
+];
+let demoW=0, demoH=0, lastStep=-1;
+
+function sizeDemo(){
+  demoW=demo.parentElement.clientWidth||DW;
+  demoH=Math.round(demoW*DH/DW);
+  demo.width=Math.round(demoW*DPR); demo.height=Math.round(demoH*DPR);
+  demo.style.height=demoH+'px';
+  xctx.setTransform(DPR,0,0,DPR,0,0);
+  lastStep=-1;
+}
+
+function drawDemo(step){
+  const k=demoW/DW;
+  xctx.setTransform(DPR,0,0,DPR,0,0);
+  xctx.clearRect(0,0,demoW,demoH);
+  xctx.save(); xctx.scale(k,k);
+
+  const S=clamp(step,0,4);
+  const win={x:70,y:56,w:DW-140,h:DH-112};
+
+  // window frame
+  xctx.fillStyle='#0d1019'; xctx.strokeStyle='#1b2033'; xctx.lineWidth=2;
+  roundRect(xctx,win.x,win.y,win.w,win.h,16); xctx.fill(); xctx.stroke();
+  // title bar
+  xctx.fillStyle='#121627';
+  roundRect(xctx,win.x,win.y,win.w,44,16); xctx.fill();
+  xctx.fillStyle='#2a3350';
+  for(let i=0;i<3;i++){ xctx.beginPath(); xctx.arc(win.x+24+i*18,win.y+22,5,0,Math.PI*2); xctx.fill(); }
+  xctx.fillStyle='#8b93ab'; xctx.font='600 12px ui-monospace,monospace';
+  xctx.fillText('ginvify · pipeline', win.x+96, win.y+27);
+
+  // sidebar
+  xctx.fillStyle='#0a0c14';
+  roundRect(xctx,win.x+18,win.y+60,190,win.h-78,12); xctx.fill();
+  STEPS.forEach((s,i)=>{
+    const y=win.y+82+i*38;
+    const on=i<=S;
+    xctx.fillStyle=on?'rgba(124,92,255,.20)':'rgba(255,255,255,.03)';
+    roundRect(xctx,win.x+30,y,166,30,8); xctx.fill();
+    xctx.fillStyle=on?(i===S?'#22d3ee':'#eef1f8'):'#4b5270';
+    xctx.beginPath(); xctx.arc(win.x+46,y+15,5,0,Math.PI*2); xctx.fill();
+    xctx.font='600 11px ui-sans-serif,system-ui,sans-serif';
+    xctx.fillText(s.t.length>16?s.t.slice(0,15)+'…':s.t, win.x+60, y+19);
+  });
+
+  const cx=win.x+232, cw=win.w-262;
+
+  if(S===0){
+    xctx.strokeStyle='#3a4468'; xctx.setLineDash([9,7]); xctx.lineWidth=2;
+    roundRect(xctx,cx,win.y+90,cw,180,14); xctx.stroke(); xctx.setLineDash([]);
+    xctx.fillStyle='#8b93ab'; xctx.font='600 16px ui-sans-serif,system-ui,sans-serif'; xctx.textAlign='center';
+    xctx.fillText('Kéo thả tài liệu vào đây', cx+cw/2, win.y+172);
+    xctx.font='400 12.5px ui-sans-serif,system-ui,sans-serif';
+    xctx.fillText('hợp đồng.pdf · quy-trinh.docx · bang-gia.xlsx', cx+cw/2, win.y+198);
+    xctx.textAlign='left';
+    // file chips
+    ['hợp đồng.pdf','quy-trinh.docx','bang-gia.xlsx'].forEach((f,i)=>{
+      const bx=cx+18+i*((cw-36)/3), by=win.y+300;
+      xctx.fillStyle='#121627'; roundRect(xctx,bx,by,(cw-56)/3,56,10); xctx.fill();
+      xctx.strokeStyle='#1b2033'; xctx.lineWidth=1.5; xctx.stroke();
+      xctx.fillStyle='#7c5cff'; xctx.font='600 11px ui-monospace,monospace'; xctx.fillText('PDF', bx+14, by+26);
+      xctx.fillStyle='#8b93ab'; xctx.font='400 11px ui-sans-serif,system-ui,sans-serif';
+      xctx.fillText(f, bx+14, by+43);
+    });
+  }
+
+  if(S>=1){
+    const n=S>=2?4:2;
+    xctx.fillStyle='#8b93ab'; xctx.font='600 12px ui-monospace,monospace';
+    xctx.fillText('chunks', cx, win.y+92);
+    for(let i=0;i<n;i++){
+      const y=win.y+110+i*70;
+      xctx.fillStyle='#121627'; roundRect(xctx,cx,y,cw,58,10); xctx.fill();
+      xctx.strokeStyle= i===n-1?'rgba(34,211,238,.6)':'#1b2033'; xctx.lineWidth=1.5; xctx.stroke();
+      xctx.fillStyle='#8b93ab';
+      for(let l=0;l<3;l++){ roundRect(xctx,cx+16,y+14+l*14,cw-32-(l===2?cw*0.45:0),7,3.5); xctx.fill(); }
+      xctx.fillStyle='#4b5270'; xctx.font='400 10.5px ui-monospace,monospace';
+      xctx.fillText('chunk_'+(i+1).toString().padStart(3,'0'), cx+16, y+52);
+    }
+  }
+
+  if(S>=2){
+    xctx.fillStyle='#8b93ab'; xctx.font='600 12px ui-monospace,monospace';
+    xctx.fillText('vector space', cx+cw-190, win.y+92);
+    for(let i=0;i<44;i++){
+      const a=(i/44)*Math.PI*2+i*.7, r=26+ (i%9)*4;
+      xctx.fillStyle= i%7===0?'#22d3ee':'rgba(124,92,255,.55)';
+      xctx.beginPath(); xctx.arc(cx+cw-100+Math.cos(a)*r, win.y+180+Math.sin(a)*r, 2.4,0,Math.PI*2); xctx.fill();
+    }
+  }
+
+  if(S>=3){
+    xctx.fillStyle='rgba(34,211,238,.14)';
+    roundRect(xctx,cx,win.y+300,cw,34,9); xctx.fill();
+    xctx.fillStyle='#22d3ee'; xctx.font='600 12px ui-sans-serif,system-ui,sans-serif';
+    xctx.fillText('↳ truy xuất 3 đoạn liên quan nhất (lọc theo quyền)', cx+14, win.y+322);
+  }
+
+  if(S>=4){
+    const by=win.y+352;
+    xctx.fillStyle='#121627'; roundRect(xctx,cx,by,cw,110,12); xctx.fill();
+    xctx.strokeStyle='rgba(124,92,255,.5)'; xctx.lineWidth=1.5; xctx.stroke();
+    xctx.fillStyle='#eef1f8'; xctx.font='600 12.5px ui-sans-serif,system-ui,sans-serif';
+    xctx.fillText('Trả lời:', cx+16, by+26);
+    xctx.fillStyle='#8b93ab'; xctx.font='400 12px ui-sans-serif,system-ui,sans-serif';
+    xctx.fillText('Theo điều 5.2 của hợp đồng, thời hạn thanh toán là 30 ngày', cx+16, by+50);
+    xctx.fillText('kể từ ngày nghiệm thu — khác với mức 45 ngày ở bản trước.', cx+16, by+70);
+    xctx.fillStyle='#22d3ee'; xctx.font='600 11px ui-monospace,monospace';
+    xctx.fillText('[1] hợp đồng.pdf · tr.12   [2] quy-trinh.docx · mục 5', cx+16, by+94);
+  }
+
+  xctx.restore();
+}
+
+function roundRect(c,x,y,w,h,r){
+  c.beginPath();
+  c.moveTo(x+r,y); c.arcTo(x+w,y,x+w,y+h,r); c.arcTo(x+w,y+h,x,y+h,r);
+  c.arcTo(x,y+h,x,y,r); c.arcTo(x,y,x+w,y,r); c.closePath();
+}
+
+function renderDemo(p){
+  const s=clamp(Math.floor(p*5),0,4);
+  if(s!==lastStep){
+    lastStep=s;
+    drawDemo(s);
+    document.getElementById('sn').textContent=s+1;
+    document.getElementById('slabel').textContent=STEPS[s].t+' — '+STEPS[s].d;
+  }
+}
+
+/* ================= scroll driver ================= */
+const stages=[...document.querySelectorAll('[data-stage]')].map(el=>({el,key:el.dataset.stage,vis:false,p:0}));
+const sio=new IntersectionObserver(es=>{
+  for(const e of es){ const s=stages.find(x=>x.el===e.target); if(s) s.vis=e.isIntersecting; }
+},{rootMargin:'120px'});
+stages.forEach(s=>sio.observe(s.el));
+
+const heroBox=document.querySelector('.hero-canvas-box');
+const heroIo=new IntersectionObserver(es=>{ gVisible=es[0].isIntersecting; },{rootMargin:'120px'});
+heroIo.observe(heroBox);
+const dataBox=document.getElementById('datacanvas').parentElement;
+let dVisible=false;
+new IntersectionObserver(es=>{ dVisible=es[0].isIntersecting; },{rootMargin:'120px'}).observe(dataBox);
+
+graph.addEventListener('pointermove',()=>{ if(Math.random()<.35) spawn(); });
+
+function onResize(){
+  sizeGraph(); sizeData(); sizeDemo();
+  document.getElementById('gn').textContent=NODES.length;
+  document.getElementById('ge').textContent=EDGES.length;
+}
+let rt=null;
+addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(onResize,180);});
+
+function tick(now){
+  const doc=document.documentElement;
+  document.getElementById('bar').style.width=
+    ((doc.scrollTop/(doc.scrollHeight-doc.clientHeight))*100||0)+'%';
+
+  const vh=innerHeight;
+  for(const s of stages){
+    if(!s.vis) continue;
+    const r=s.el.getBoundingClientRect();
+    const total=r.height-vh;
+    const p=total>0?clamp(-r.top/total,0,1):0;
+    s.p=p;
+    if(s.key==='stack') renderStack(p);
+    else if(s.key==='demo') renderDemo(p);
+  }
+
+  if(gVisible && !reduced){
+    if(Math.random()<.08) spawn();
+    drawGraph();
+    document.getElementById('gp').textContent=packets.length;
+  }
+  if(dVisible){
+    const ds=stages.find(s=>s.key==='data');
+    drawData(ds?ds.p:0);
+  }
+  requestAnimationFrame(tick);
+}
+
+/* ================= boot ================= */
+function boot(){
+  onResize();
+  buildData();
+  sizeData();
+  sizeDemo();
+  document.getElementById('gp').textContent=0;
+  if(reduced){
+    renderStack(1); renderDemo(1); drawData(1); drawGraph();
+  }else{
+    renderStack(0); renderDemo(0); drawData(0);
+    requestAnimationFrame(tick);
+  }
+}
+if(document.readyState==='complete') boot(); else addEventListener('load',boot);
+})();
+</script>
+</body>
+</html>
